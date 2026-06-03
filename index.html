@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Focus Study Tracker - AI-Powered Study Assistant</title>
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="An AI-powered web application that monitors your gaze and phone usage to help you stay focused during study sessions.">
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- CSS -->
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1e1b4b">
+</head>
+<body>
+
+  <!-- Background decorative glows -->
+  <div class="bg-glow bg-glow-1"></div>
+  <div class="bg-glow bg-glow-2"></div>
+
+  <!-- Distraction Overlay -->
+  <div id="distraction-overlay" class="distraction-overlay hidden">
+    <div class="overlay-content">
+      <div class="overlay-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+      </div>
+      <h2>DISTRACTED!</h2>
+      <p id="distraction-message">Please focus back on your study to resume the timer.</p>
+    </div>
+  </div>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-logo">
+        <div class="logo-icon">🎯</div>
+        <h1>FocusSphere</h1>
+      </div>
+      <div class="header-status">
+        <span class="status-dot green"></span>
+        <span id="system-status-text">Initializing AI Model...</span>
+      </div>
+    </header>
+
+    <!-- Main Grid -->
+    <main class="app-grid">
+      
+      <!-- Left Panel: Tasks -->
+      <section class="panel panel-tasks" id="tasks-panel">
+        <div class="panel-header">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="panel-icon"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+          <h2>Study Tasks</h2>
+        </div>
+        
+        <!-- Add Task Form -->
+        <form id="add-task-form" class="task-form">
+          <div class="form-group">
+            <input type="text" id="task-name" placeholder="What are you studying?" required autocomplete="off">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="task-start-time">Start Time</label>
+              <input type="time" id="task-start-time" required>
+            </div>
+            <div class="form-group">
+              <label for="task-duration">Duration (m)</label>
+              <input type="number" id="task-duration" min="1" max="180" value="25" required>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary" id="btn-add-task">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Task
+          </button>
+        </form>
+
+        <!-- Tasks List -->
+        <div class="tasks-container">
+          <ul id="tasks-list" class="tasks-list">
+            <!-- Dynamically populated -->
+          </ul>
+        </div>
+      </section>
+
+      <!-- Center Panel: Timer & Main Controls -->
+      <section class="panel panel-main" id="timer-panel">
+        <div class="timer-display-container">
+          <!-- Circular progress indicator -->
+          <div class="circular-progress">
+            <svg class="progress-ring" width="280" height="280">
+              <circle class="progress-ring__circle-bg" stroke="rgba(255, 255, 255, 0.05)" stroke-width="8" fill="transparent" r="125" cx="140" cy="140" />
+              <circle id="progress-circle" class="progress-ring__circle" stroke="var(--primary-glow)" stroke-width="8" fill="transparent" r="125" cx="140" cy="140" />
+            </svg>
+            <div class="timer-text-container">
+              <div id="timer-label" class="timer-label">FOCUS SESSION</div>
+              <div id="timer-clock" class="timer-clock">25:00</div>
+              <div id="active-task-display" class="active-task-display">No active task selected</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bangladesh Time Digital Clock (Glow) -->
+        <div class="timer-bd-clock-container">
+          <span id="digital-clock" class="digital-clock-glowing">00:00:00 AM</span>
+          <span class="timezone-label">BD Standard Time</span>
+        </div>
+
+        <!-- Presets and Custom Inputs -->
+        <div class="timer-settings">
+          <button class="preset-btn active" data-minutes="25">25 Min</button>
+          <button class="preset-btn" data-minutes="50">50 Min</button>
+          <div class="custom-time-input">
+            <input type="number" id="custom-minutes" min="1" max="180" placeholder="Custom">
+            <span>min</span>
+          </div>
+        </div>
+
+        <!-- Session Action Controls -->
+        <div class="timer-controls">
+          <button id="btn-start" class="btn btn-success btn-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Start
+          </button>
+          <button id="btn-pause" class="btn btn-warning btn-lg hidden">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+            Pause
+          </button>
+          <button id="btn-reset" class="btn btn-outline btn-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+            Reset
+          </button>
+          <button id="btn-restart" class="btn btn-outline btn-lg" title="Restart Session and Clear Stats">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16M3 21v-5h5"/></svg>
+            Restart
+          </button>
+        </div>
+
+        <!-- Dashboard Statistics -->
+        <div class="stats-dashboard">
+          <div class="stat-card">
+            <div class="stat-icon">⏱️</div>
+            <div class="stat-info">
+              <span class="stat-value" id="stat-total-time">0m</span>
+              <span class="stat-label">Total Focused</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">📉</div>
+            <div class="stat-info">
+              <span class="stat-value" id="stat-loss-time">0s</span>
+              <span class="stat-label">Loss Time</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">⚠️</div>
+            <div class="stat-info">
+              <span class="stat-value" id="stat-distractions">0</span>
+              <span class="stat-label">Distractions</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🔥</div>
+            <div class="stat-info">
+              <span class="stat-value" id="stat-focus-score">100%</span>
+              <span class="stat-label">Focus Score</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Panel: Camera Gaze & Settings -->
+      <section class="panel panel-camera" id="camera-panel">
+        <div class="panel-header">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="panel-icon"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <h2>Focus Tracker Camera</h2>
+        </div>
+
+        <!-- Camera Feed Container -->
+        <div class="camera-feed-container">
+          <div class="camera-placeholder" id="camera-placeholder">
+            <div class="placeholder-icon">📸</div>
+            <p>Camera feed is loading...</p>
+          </div>
+          <!-- Video element for webcam -->
+          <video id="webcam" autoplay playsinline muted class="webcam-video hidden"></video>
+          <!-- Canvas for rendering AI overlays -->
+          <canvas id="output-canvas" class="output-canvas"></canvas>
+          <!-- Gaze indicator overlay -->
+          <div id="gaze-dot" class="gaze-dot hidden"></div>
+          <!-- Privacy Shield Overlay (shown when feed is hidden) -->
+          <div id="privacy-overlay" class="privacy-overlay hidden">
+            <div class="privacy-icon">🔒</div>
+            <p class="privacy-title">Camera Feed Hidden</p>
+            <p class="privacy-sub">AI Background Monitoring is active</p>
+            <div class="pulse-indicator">
+              <span class="pulse-dot"></span>
+              <span class="pulse-text">Tracking Active</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Calibration Card -->
+        <div class="calibration-card">
+          <h3>AI Gaze Calibration</h3>
+          <p>Before studying, look straight at the screen/timer and click Calibrate. This aligns the eye tracker to your seating position.</p>
+          <div class="calibration-progress-container hidden" id="calibration-progress-bar">
+            <div class="calibration-progress-fill" id="calibration-progress-fill"></div>
+          </div>
+          <button id="btn-calibrate" class="btn btn-secondary" disabled>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
+            Calibrate Gaze
+          </button>
+        </div>
+
+        <!-- Settings Card -->
+        <div class="settings-card">
+          <h3>Tracking Settings</h3>
+          <div class="toggle-container">
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggle-book-check">
+              <span class="slider"></span>
+            </label>
+            <span class="toggle-label">Strict Book Check</span>
+          </div>
+          <p class="settings-help" style="margin-bottom: 1rem;">If enabled, looking down only counts as studying if a book is visible in the camera frame.</p>
+
+          <div class="toggle-container">
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggle-camera-preview" checked>
+              <span class="slider"></span>
+            </label>
+            <span class="toggle-label">Show Camera Feed</span>
+          </div>
+          <p class="settings-help">If disabled, the camera feed is hidden for privacy but the AI background tracking remains fully active.</p>
+        </div>
+
+        <!-- AI Tracking Status Logs -->
+        <div class="ai-logs">
+          <div class="log-title">AI Tracking Status</div>
+          <div class="log-item" id="log-presence">Presence: <span>Checking...</span></div>
+          <div class="log-item" id="log-gaze">Gaze: <span>Checking...</span></div>
+          <div class="log-item" id="log-phone">Phone Usage: <span>Checking...</span></div>
+          <div class="log-item" id="log-hands">Hands Tracked: <span>None</span></div>
+          <div class="log-item" id="log-objects">Objects Detected: <span>None</span></div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Audio elements for distraction notification -->
+  <audio id="sound-alert" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav" preload="auto"></audio>
+
+  <!-- MediaPipe Tasks Vision JS Library & Core Logic -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>

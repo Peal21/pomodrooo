@@ -1,0 +1,17 @@
+{
+  "name": "FocusSphere Study Tracker",
+  "short_name": "FocusSphere",
+  "description": "AI-powered study tracker with automatic gaze, hand, and phone monitoring.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#090514",
+  "theme_color": "#1e1b4b",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3207/3207611.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
