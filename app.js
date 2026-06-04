@@ -34,7 +34,7 @@ let gazeAwayFrames = 0;
 let phonePresentFrames = 0;
 let cleanFocusedFrames = 0;
 
-const STREAK_ABSENT_TRIGGER = 25; // ~1.5s (at ~15fps processing)
+const STREAK_ABSENT_TRIGGER = 120; // ~8.0s grace period (at ~15fps processing) to prevent alarms during head rotations
 const STREAK_GAZE_TRIGGER = 15;   // ~1.0s
 const STREAK_PHONE_TRIGGER = 5;    // ~0.3s
 const STREAK_FOCUS_TRIGGER = 10;   // ~0.6s
