@@ -590,6 +590,7 @@ function evaluateDistractions(facePresent, personDetected, gazeStatus, phoneDete
 }
 
 function triggerDistraction(absent, phone, type = null) {
+  if (!isTrackingEnabled) return;
   isDistracted = true;
   distractionCount++;
   statDistractions.textContent = distractionCount;
@@ -665,8 +666,13 @@ function triggerFocusRestore() {
   // Resume Timer if user had session active
   if (isTimerRunning) {
     startTimerInterval();
-    systemStatusText.textContent = "Focus system active.";
-    statusDot.className = "status-dot green";
+    if (isTrackingEnabled) {
+      systemStatusText.textContent = "Focus system active.";
+      statusDot.className = "status-dot green";
+    } else {
+      systemStatusText.textContent = "Focus session active (AI disabled).";
+      statusDot.className = "status-dot green";
+    }
   } else {
     systemStatusText.textContent = "Focus system ready.";
     statusDot.className = "status-dot green";
@@ -722,13 +728,13 @@ function updateTimerDisplay() {
 }
 
 function startTimer() {
-  if (!isCalibrated) {
+  if (isTrackingEnabled && !isCalibrated) {
     alert("Please calibrate the gaze tracker before starting the focus session!");
     return;
   }
 
   // Request Fullscreen Mode to strictly block switching tabs or opening other apps
-  if (document.documentElement.requestFullscreen) {
+  if (isTrackingEnabled && document.documentElement.requestFullscreen) {
     document.documentElement.requestFullscreen().catch(err => {
       console.warn("Fullscreen request rejected:", err);
     });
@@ -736,9 +742,16 @@ function startTimer() {
   
   isTimerRunning = true;
   btnStart.classList.add("hidden");
-  btnPause.classList.add("hidden"); // Hide Pause button to prevent manual pausing (traps the user)
-  btnReset.classList.add("hidden"); // Hide Reset button too to enforce lockdown
-  btnRestart.classList.add("hidden");
+  
+  if (isTrackingEnabled) {
+    btnPause.classList.add("hidden"); // Hide Pause button to prevent manual pausing (traps the user)
+    btnReset.classList.add("hidden"); // Hide Reset button too to enforce lockdown
+    btnRestart.classList.add("hidden");
+  } else {
+    btnPause.classList.remove("hidden");
+    btnReset.classList.remove("hidden");
+    btnRestart.classList.remove("hidden");
+  }
   
   // Disable presets inputs while timer runs
   presetButtons.forEach(btn => btn.disabled = true);
@@ -755,8 +768,13 @@ function startTimer() {
 
   if (!isDistracted) {
     startTimerInterval();
-    systemStatusText.textContent = "Focus session active (Lockdown Mode).";
-    statusDot.className = "status-dot green";
+    if (isTrackingEnabled) {
+      systemStatusText.textContent = "Focus session active (Lockdown Mode).";
+      statusDot.className = "status-dot green";
+    } else {
+      systemStatusText.textContent = "Focus session active (AI disabled).";
+      statusDot.className = "status-dot green";
+    }
   }
 }
 
@@ -1000,20 +1018,52 @@ function setupEventListeners() {
       alertSound.pause();
       alertSound.currentTime = 0;
       
-      // Hide distraction overlay if it was showing due to camera tracking
-      if (isDistracted && (distractionMessage.innerHTML.includes("Phone") || distractionMessage.innerHTML.includes("face") || distractionMessage.innerHTML.includes("desk"))) {
+      // Hide distraction overlay
+      if (isDistracted || isGazeDistracted) {
         triggerFocusRestore();
+      }
+      
+      // If timer is running, update control buttons to be visible so they can pause/reset
+      if (isTimerRunning) {
+        btnPause.classList.remove("hidden");
+        btnReset.classList.remove("hidden");
+        btnRestart.classList.remove("hidden");
+        systemStatusText.textContent = "Focus session active (AI disabled).";
+        statusDot.className = "status-dot green";
+      } else {
+        systemStatusText.textContent = "AI Tracking Disabled.";
+        statusDot.className = "status-dot orange";
       }
     } else {
       // Re-initialize and start webcam
       startWebcam();
       
-      if (isCalibrated) {
-        systemStatusText.textContent = "AI Active. Focus system active.";
-        statusDot.className = "status-dot green";
+      // If timer is running, hide Pause/Reset buttons to enforce lockdown
+      if (isTimerRunning) {
+        btnPause.classList.add("hidden");
+        btnReset.classList.add("hidden");
+        btnRestart.classList.add("hidden");
+        
+        // Request fullscreen to lock down
+        if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen().catch(err => console.warn(err));
+        }
+        
+        if (isCalibrated) {
+          systemStatusText.textContent = "Focus session active (Lockdown Mode).";
+          statusDot.className = "status-dot green";
+        } else {
+          systemStatusText.textContent = "Gaze Calibration Required.";
+          statusDot.className = "status-dot orange";
+        }
       } else {
-        systemStatusText.textContent = "Gaze Calibration Required.";
-        statusDot.className = "status-dot orange";
+        if (isCalibrated) {
+          systemStatusText.textContent = "AI Active. Focus system active.";
+          statusDot.className = "status-dot green";
+        } else {
+          systemStatusText.textContent = "Gaze Calibration Required.";
+          statusDot.className = "status-dot orange";
+        }
       }
     }
   });
@@ -1052,14 +1102,14 @@ function setupEventListeners() {
 
   document.addEventListener("fullscreenchange", () => {
     const isFullscreen = document.fullscreenElement !== null;
-    if (!isFullscreen && isTimerRunning && !isDistracted) {
+    if (!isFullscreen && isTimerRunning && !isDistracted && isTrackingEnabled) {
       triggerDistraction(0, 0, "fullscreen");
     }
   });
 
   // Prevent leaving or reloading the tab during active focus session
   window.addEventListener("beforeunload", (e) => {
-    if (isTimerRunning) {
+    if (isTimerRunning && isTrackingEnabled) {
       e.preventDefault();
       e.returnValue = "Your study session is active! You cannot reload or exit.";
       return e.returnValue;
@@ -1068,7 +1118,7 @@ function setupEventListeners() {
 
   // Block key reloads and Escape keys to prevent simple escapes
   window.addEventListener("keydown", (e) => {
-    if (isTimerRunning) {
+    if (isTimerRunning && isTrackingEnabled) {
       // Block F5, Cmd+R, Ctrl+R
       if (e.key === "F5" || ((e.ctrlKey || e.metaKey) && e.key === "r")) {
         e.preventDefault();
@@ -1485,16 +1535,26 @@ function recoverSession() {
       // Auto-start the timer and enter distraction state until they calibrate/fullscreen
       isTimerRunning = true;
       btnStart.classList.add("hidden");
-      btnPause.classList.add("hidden");
-      btnReset.classList.add("hidden");
-      btnRestart.classList.add("hidden");
+      
+      if (isTrackingEnabled) {
+        btnPause.classList.add("hidden");
+        btnReset.classList.add("hidden");
+        btnRestart.classList.add("hidden");
+      } else {
+        btnPause.classList.remove("hidden");
+        btnReset.classList.remove("hidden");
+        btnRestart.classList.remove("hidden");
+      }
+      
       presetButtons.forEach(btn => btn.disabled = true);
       customMinutesInput.disabled = true;
       
       startTimerInterval();
       
-      // Force distraction overlay
-      triggerDistraction(0, 0, "reload");
+      if (isTrackingEnabled) {
+        // Force distraction overlay
+        triggerDistraction(0, 0, "reload");
+      }
     } else {
       localStorage.removeItem("study_session_running");
     }
