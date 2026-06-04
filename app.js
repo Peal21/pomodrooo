@@ -121,7 +121,17 @@ const toggleAiTracking = document.getElementById("toggle-ai-tracking");
 document.addEventListener("DOMContentLoaded", () => {
   setDefaultStartTime();
   loadTasks();
-  startWebcam(); // Start camera immediately to trigger browser prompt
+  
+  // Sync tracking enablement status with checkbox (handles browser refresh state recovery)
+  if (toggleAiTracking) {
+    isTrackingEnabled = toggleAiTracking.checked;
+  }
+  if (isTrackingEnabled) {
+    startWebcam(); // Start camera immediately if enabled
+  } else {
+    stopWebcam();
+  }
+  
   initAI();      // Load AI models in parallel
   setupTimerPresets();
   setupEventListeners();
@@ -191,6 +201,40 @@ async function initAI() {
   }
 }
 
+// Stop webcam stream and release camera device access (turning off camera indicator light)
+function stopWebcam() {
+  if (stream) {
+    try {
+      stream.getTracks().forEach(track => track.stop());
+    } catch (e) {
+      console.warn("Failed to stop stream tracks:", e);
+    }
+    stream = null;
+  }
+  webcamElement.srcObject = null;
+  webcamRunning = false;
+
+  cameraPlaceholder.classList.remove("hidden");
+  const placeholderText = cameraPlaceholder.querySelector("p");
+  if (placeholderText) {
+    placeholderText.textContent = "Camera is turned off (AI Tracking disabled)";
+  }
+  webcamElement.classList.add("hidden");
+
+  // Clear canvas overlay drawing
+  canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+  if (gazeDot) {
+    gazeDot.classList.add("hidden");
+  }
+
+  // Set visual status labels to Disabled
+  if (logPresence) { logPresence.textContent = "Disabled"; logPresence.className = "status-warn"; }
+  if (logGaze) { logGaze.textContent = "Disabled"; logGaze.className = "status-warn"; }
+  if (logPhone) { logPhone.textContent = "Disabled"; logPhone.className = ""; }
+  if (logHands) { logHands.textContent = "Disabled"; logHands.className = ""; }
+  if (logObjects) { logObjects.textContent = "Disabled"; logObjects.className = ""; }
+}
+
 // Start webcam stream
 async function startWebcam() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -220,7 +264,7 @@ async function startWebcam() {
 
     webcamElement.srcObject = stream;
     
-    webcamElement.addEventListener("loadeddata", () => {
+    webcamElement.onloadeddata = () => {
       cameraPlaceholder.classList.add("hidden");
       webcamElement.classList.remove("hidden");
       webcamRunning = true;
@@ -240,7 +284,7 @@ async function startWebcam() {
       
       // Start processing loop
       requestAnimationFrame(predictLoop);
-    });
+    };
   } catch (err) {
     console.error("Webcam access failed:", err);
     statusDot.className = "status-dot red";
@@ -948,6 +992,9 @@ function setupEventListeners() {
       systemStatusText.textContent = "AI Tracking Disabled.";
       statusDot.className = "status-dot orange";
       
+      // Stop camera and release device to turn off green light
+      stopWebcam();
+      
       // Stop alert sound if it was playing
       alertSound.loop = false;
       alertSound.pause();
@@ -958,6 +1005,9 @@ function setupEventListeners() {
         triggerFocusRestore();
       }
     } else {
+      // Re-initialize and start webcam
+      startWebcam();
+      
       if (isCalibrated) {
         systemStatusText.textContent = "AI Active. Focus system active.";
         statusDot.className = "status-dot green";
