@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <!-- CSS -->
-  <link rel="stylesheet" href="style.css?v=6">
+  <link rel="stylesheet" href="style.css?v=7">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#1e1b4b">
 </head>
@@ -44,6 +44,13 @@
         <h1>FocusSphere</h1>
       </div>
       <div class="header-status">
+        <div class="tracking-toggle-wrapper" style="margin-right: 1.5rem; display: flex; align-items: center; gap: 0.5rem; background: rgba(255, 255, 255, 0.03); padding: 0.35rem 0.75rem; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.05);">
+          <span class="toggle-label" style="font-size: 0.8rem; font-weight: 500; color: var(--text-muted); white-space: nowrap;">AI Tracking</span>
+          <label class="toggle-switch" style="transform: scale(0.8); margin: 0;">
+            <input type="checkbox" id="toggle-ai-tracking" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
         <span class="status-dot green"></span>
         <span id="system-status-text">Initializing AI Model...</span>
       </div>
@@ -227,15 +234,6 @@
           <h3>Tracking Settings</h3>
           <div class="toggle-container">
             <label class="toggle-switch">
-              <input type="checkbox" id="toggle-ai-tracking" checked>
-              <span class="slider"></span>
-            </label>
-            <span class="toggle-label">AI Gaze & Phone Tracking</span>
-          </div>
-          <p class="settings-help" style="margin-bottom: 1rem;">Enable or disable all camera-based presence, gaze, and cell phone tracking.</p>
-
-          <div class="toggle-container">
-            <label class="toggle-switch">
               <input type="checkbox" id="toggle-book-check">
               <span class="slider"></span>
             </label>
@@ -271,6 +269,6 @@
   <audio id="sound-alert" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav" preload="auto"></audio>
 
   <!-- MediaPipe Tasks Vision JS Library & Core Logic -->
-  <script type="module" src="app.js?v=6"></script>
+  <script type="module" src="app.js?v=7"></script>
 </body>
 </html>
