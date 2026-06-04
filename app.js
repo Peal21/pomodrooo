@@ -320,18 +320,7 @@ function runDetections() {
           detectedLabels.push(`${displayLabel} (${scorePercent}%)`);
         } else if (name === "book" && score > 0.35) {
           bookDetected = true;
-          const scorePercent = Math.round(score * 100);
-          drawObjectBox(detection.boundingBox, `Book (Studying - ${scorePercent}%)`, "green");
-          detectedLabels.push(`Book (${scorePercent}%)`);
-        } else {
-          // Ignored large background/furniture objects
-          const ignoredClasses = ["person", "chair", "dining table", "couch", "bed", "potted plant", "tv", "refrigerator", "sink"];
-          if (!ignoredClasses.includes(name) && score > 0.25) {
-            const formattedName = name.charAt(0).toUpperCase() + name.slice(1);
-            const scorePercent = Math.round(score * 100);
-            drawObjectBox(detection.boundingBox, `${formattedName} (${scorePercent}%)`, "blue");
-            detectedLabels.push(`${formattedName} (${scorePercent}%)`);
-          }
+          // Book detection is registered silently for "Strict Book Check", but no visual box is drawn
         }
       }
     }
