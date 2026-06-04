@@ -456,6 +456,11 @@ function evaluateGaze(normal, bookDetected) {
   // Draw Gaze pointer dot on UI (passing bookDetected status)
   drawGazeDot(diffX, diffY, bookDetected);
 
+  // If head is rotated left or right, bypass vertical checks to prevent crosstalk and keep state as focused
+  if (Math.abs(diffX) > YAW_THRESHOLD) {
+    return "center";
+  }
+
   // Pitch evaluation (Horizontal yaw check is disabled so looking left/right doesn't cause problems)
   if (diffY < -PITCH_THRESHOLD) {
     return "away"; // looking up is always away
@@ -1294,13 +1299,16 @@ function drawGazeDot(diffX, diffY, bookDetected) {
   const isYawAway = false; // Disable horizontal gaze check as per user feedback
   
   let isPitchAway = false;
-  if (diffY < -PITCH_THRESHOLD) {
-    isPitchAway = true;
-  } else if (diffY > PITCH_THRESHOLD) {
-    if (!requireBookInFrame || bookDetected) {
-      isPitchAway = false; // Focused on book / desk!
-    } else {
-      isPitchAway = true; // Strict check active and no book found
+  // Only evaluate pitch away if the head is not rotated horizontally
+  if (Math.abs(diffX) <= YAW_THRESHOLD) {
+    if (diffY < -PITCH_THRESHOLD) {
+      isPitchAway = true;
+    } else if (diffY > PITCH_THRESHOLD) {
+      if (!requireBookInFrame || bookDetected) {
+        isPitchAway = false; // Focused on book / desk!
+      } else {
+        isPitchAway = true; // Strict check active and no book found
+      }
     }
   }
 
