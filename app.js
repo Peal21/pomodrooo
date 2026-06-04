@@ -24,8 +24,8 @@ const CALIBRATION_DURATION_MS = 2000;
 let baselineGaze = { x: 0, y: 0 };
 
 // Gaze thresholds
-const YAW_THRESHOLD = 0.14; // Horizontal movement
-const PITCH_THRESHOLD = 0.10; // Vertical movement (looking UP)
+const YAW_THRESHOLD = 0.06; // Lowered to bypass vertical checks even for very small horizontal head rotations
+const PITCH_THRESHOLD = 0.20; // Increased so small upward movements or crosstalk don't trigger warning
 const PITCH_DOWN_THRESHOLD = 0.45; // Vertical movement (looking DOWN - allows reading book)
 
 // Consecutive frame buffers to avoid flickering
