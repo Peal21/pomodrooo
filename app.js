@@ -456,15 +456,8 @@ function evaluateGaze(normal, bookDetected) {
   // Draw Gaze pointer dot on UI (passing bookDetected status)
   drawGazeDot(diffX, diffY, bookDetected);
 
-  // If head is rotated left or right, bypass vertical checks to prevent crosstalk and keep state as focused
-  if (Math.abs(diffX) > YAW_THRESHOLD) {
-    return "center";
-  }
-
-  // Pitch evaluation (Horizontal yaw check is disabled so looking left/right doesn't cause problems)
-  if (diffY < -PITCH_THRESHOLD) {
-    return "away"; // looking up is always away
-  } else if (diffY > PITCH_THRESHOLD) {
+  // Pitch evaluation for looking down
+  if (diffY > PITCH_THRESHOLD) {
     // looking down (no maximum down limit as long as face is detected)
     if (!requireBookInFrame || bookDetected) {
       return "book"; // focused on book (or book checking is disabled)!
@@ -473,7 +466,7 @@ function evaluateGaze(normal, bookDetected) {
     }
   }
 
-  return "center"; // looking straight at screen
+  return "center"; // default to focused (looking straight/left/right/up)
 }
 
 // ==========================================
@@ -1247,18 +1240,11 @@ function drawGazeDot(diffX, diffY, bookDetected) {
   // Draw boundaries lines in center of camera panel (canvas) for vertical tracking
   const centerW = canvasElement.width / 2;
   const centerH = canvasElement.height / 2;
-  const boxH_up = PITCH_THRESHOLD * canvasElement.height * 1.5;
   const boxH_down = 0.45 * canvasElement.height * 1.5;
   
   canvasCtx.strokeStyle = "rgba(255, 255, 255, 0.15)";
   canvasCtx.lineWidth = 1;
   canvasCtx.setLineDash([4, 4]);
-  
-  // Upper limit line (looking too far up is a distraction)
-  canvasCtx.beginPath();
-  canvasCtx.moveTo(0, centerH - boxH_up);
-  canvasCtx.lineTo(canvasElement.width, centerH - boxH_up);
-  canvasCtx.stroke();
 
   // Lower limit line (only visible and relevant if strict book verification is enabled)
   if (requireBookInFrame) {
@@ -1281,13 +1267,7 @@ function drawGazeDot(diffX, diffY, bookDetected) {
   // Interpolate position - map X and Y to percentage space
   // We use YAW_THRESHOLD * 4 to allow a wider visual space for horizontal movement of the dot
   const dotX = 50 + (diffX / (YAW_THRESHOLD * 4)) * 50;
-  
-  let dotY;
-  if (diffY < 0) {
-    dotY = 50 + (diffY / (PITCH_THRESHOLD * 2)) * 50;
-  } else {
-    dotY = 50 + (diffY / (0.45 * 2)) * 50; // Visual scale factor
-  }
+  const dotY = 50 + (diffY / (0.45 * 2)) * 50; // Visual scale factor
   
   // Clamp boundaries to [5, 95]
   const clampedX = Math.max(5, Math.min(95, dotX));
@@ -1296,23 +1276,13 @@ function drawGazeDot(diffX, diffY, bookDetected) {
   gazeDot.style.left = `${clampedX}%`;
   gazeDot.style.top = `${clampedY}%`;
 
-  const isYawAway = false; // Disable horizontal gaze check as per user feedback
-  
   let isPitchAway = false;
-  // Only evaluate pitch away if the head is not rotated horizontally
-  if (Math.abs(diffX) <= YAW_THRESHOLD) {
-    if (diffY < -PITCH_THRESHOLD) {
-      isPitchAway = true;
-    } else if (diffY > PITCH_THRESHOLD) {
-      if (!requireBookInFrame || bookDetected) {
-        isPitchAway = false; // Focused on book / desk!
-      } else {
-        isPitchAway = true; // Strict check active and no book found
-      }
-    }
+  // Only evaluate pitch away (looking down without book) if strict checking is enabled
+  if (requireBookInFrame && diffY > PITCH_THRESHOLD && !bookDetected) {
+    isPitchAway = true;
   }
 
-  if (isYawAway || isPitchAway) {
+  if (isPitchAway) {
     gazeDot.style.backgroundColor = "var(--warning-glow)";
     gazeDot.style.boxShadow = "0 0 10px var(--warning-glow)";
   } else {
