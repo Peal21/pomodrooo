@@ -1451,8 +1451,8 @@ function recoverSession() {
   }
 }
 
-// PWA Service Worker Registration
-if ('serviceWorker' in navigator) {
+// PWA Service Worker Registration (disabled on localhost to prevent local caching issues)
+if ('serviceWorker' in navigator && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').catch(err => {
       console.warn('Service worker registration failed:', err);
