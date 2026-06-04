@@ -1124,14 +1124,21 @@ input[type="time"]:focus {
 }
 
 /* Classes for hiding camera feed but keeping it rendering */
+.camera-feed-container.feed-hidden {
+  height: 0;
+  aspect-ratio: auto;
+  border: none;
+  margin-bottom: 0;
+  box-shadow: none;
+}
+
 .camera-feed-container.feed-hidden .webcam-video {
-  opacity: 0.01; /* Keep it running for tracking, but hide it visually */
+  opacity: 0.0001; /* Keep it running for tracking, but hide it visually */
 }
 
-.camera-feed-container.feed-hidden .output-canvas {
-  display: none;
-}
-
+.camera-feed-container.feed-hidden .output-canvas,
+.camera-feed-container.feed-hidden .camera-placeholder,
+.camera-feed-container.feed-hidden #privacy-overlay,
 .camera-feed-container.feed-hidden .gaze-dot {
   display: none !important;
 }
