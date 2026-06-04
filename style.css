@@ -532,10 +532,14 @@ input[type="time"]:focus {
 }
 
 .progress-ring__circle {
-  transition: stroke-dashoffset 0.3s;
+  transition: stroke-dashoffset 0.3s, stroke 0.3s, filter 0.3s;
   transform-origin: 50% 50%;
   stroke-linecap: round;
-  filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.3));
+  filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.45));
+}
+
+.progress-ring__circle.distracted {
+  filter: drop-shadow(0 0 12px rgba(239, 68, 68, 0.65));
 }
 
 .timer-text-container {
@@ -558,10 +562,17 @@ input[type="time"]:focus {
   font-size: 3.75rem;
   font-weight: 700;
   font-family: 'JetBrains Mono', monospace;
-  color: var(--text-primary);
+  color: #fff;
   line-height: 1;
   letter-spacing: -0.02em;
   margin-bottom: 0.5rem;
+  text-shadow: 0 0 12px rgba(16, 185, 129, 0.6), 0 0 25px rgba(16, 185, 129, 0.25);
+  transition: text-shadow 0.3s ease, color 0.3s ease;
+}
+
+.timer-clock.distracted-glow {
+  color: #fca5a5;
+  text-shadow: 0 0 12px rgba(239, 68, 68, 0.75), 0 0 25px rgba(239, 68, 68, 0.4);
 }
 
 .active-task-display {
@@ -1036,15 +1047,15 @@ input[type="time"]:focus {
   backdrop-filter: var(--glass-blur);
   box-shadow: var(--shadow-glow);
   width: 100%;
-  max-width: 280px;
+  max-width: 320px;
 }
 
 .digital-clock-glowing {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 1.85rem;
+  font-size: 2.35rem;
   font-weight: 700;
   color: #a5b4fc; /* Neon Indigo/Lavender */
-  text-shadow: 0 0 10px rgba(165, 180, 252, 0.6), 0 0 25px rgba(165, 180, 252, 0.4);
+  text-shadow: 0 0 12px rgba(165, 180, 252, 0.75), 0 0 25px rgba(165, 180, 252, 0.45);
   letter-spacing: 0.05em;
   line-height: 1;
 }

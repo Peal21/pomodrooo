@@ -634,6 +634,17 @@ function triggerDistraction(absent, phone, type = null) {
   // Style changes to camera feed border
   cameraFeedContainer.className = "camera-feed-container distracted";
 
+  // Change progress circle and timer clock to red glow when distracted
+  const progressCircle = document.getElementById("progress-circle");
+  if (progressCircle) {
+    progressCircle.style.stroke = "var(--warning-glow)";
+    progressCircle.classList.add("distracted");
+  }
+  const timerClock = document.getElementById("timer-clock");
+  if (timerClock) {
+    timerClock.classList.add("distracted-glow");
+  }
+
   // Play alert sound (looping until they focus back)
   alertSound.loop = true;
   alertSound.currentTime = 0;
@@ -662,6 +673,17 @@ function triggerFocusRestore() {
   }, 400);
 
   cameraFeedContainer.className = "camera-feed-container focusing";
+
+  // Restore progress circle and timer clock to green glow when focusing
+  const progressCircle = document.getElementById("progress-circle");
+  if (progressCircle) {
+    progressCircle.style.stroke = "var(--primary-glow)";
+    progressCircle.classList.remove("distracted");
+  }
+  const timerClock = document.getElementById("timer-clock");
+  if (timerClock) {
+    timerClock.classList.remove("distracted-glow");
+  }
   
   // Resume Timer if user had session active
   if (isTimerRunning) {
