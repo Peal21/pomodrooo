@@ -311,8 +311,8 @@ function runDetections() {
           personDetected = true;
         }
         
-        // Strict phone check (extremely low threshold of 0.20 for cell phone and 0.22 for remote to catch any phone-like objects instantly)
-        if ((name === "cell phone" && score > 0.20) || (name === "remote" && score > 0.22)) {
+        // Strict phone check (increased threshold to 0.45 to avoid false positives like headphones or ears)
+        if ((name === "cell phone" && score > 0.45) || (name === "remote" && score > 0.45)) {
           phoneDetected = true;
           const displayLabel = name === "cell phone" ? "Cell Phone" : "Handheld Device/Phone";
           const scorePercent = Math.round(score * 100);
