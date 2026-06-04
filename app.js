@@ -456,12 +456,7 @@ function evaluateGaze(normal, bookDetected) {
   // Draw Gaze pointer dot on UI (passing bookDetected status)
   drawGazeDot(diffX, diffY, bookDetected);
 
-  const yawAway = Math.abs(diffX) > YAW_THRESHOLD;
-  if (yawAway) {
-    return "away";
-  }
-
-  // Pitch evaluation
+  // Pitch evaluation (Horizontal yaw check is disabled so looking left/right doesn't cause problems)
   if (diffY < -PITCH_THRESHOLD) {
     return "away"; // looking up is always away
   } else if (diffY > PITCH_THRESHOLD) {
@@ -1244,18 +1239,29 @@ function drawFaceOutline(landmarks) {
 }
 
 function drawGazeDot(diffX, diffY, bookDetected) {
-  // Draw boundaries box in center of camera panel (canvas)
+  // Draw boundaries lines in center of camera panel (canvas) for vertical tracking
   const centerW = canvasElement.width / 2;
   const centerH = canvasElement.height / 2;
-  const boxW = YAW_THRESHOLD * canvasElement.width * 1.5;
   const boxH_up = PITCH_THRESHOLD * canvasElement.height * 1.5;
   const boxH_down = 0.45 * canvasElement.height * 1.5;
   
   canvasCtx.strokeStyle = "rgba(255, 255, 255, 0.15)";
   canvasCtx.lineWidth = 1;
   canvasCtx.setLineDash([4, 4]);
-  // Draw custom asymmetrical boundary box (allowing more space downwards)
-  canvasCtx.strokeRect(centerW - boxW, centerH - boxH_up, boxW * 2, boxH_up + boxH_down);
+  
+  // Upper limit line (looking too far up is a distraction)
+  canvasCtx.beginPath();
+  canvasCtx.moveTo(0, centerH - boxH_up);
+  canvasCtx.lineTo(canvasElement.width, centerH - boxH_up);
+  canvasCtx.stroke();
+
+  // Lower limit line (only visible and relevant if strict book verification is enabled)
+  if (requireBookInFrame) {
+    canvasCtx.beginPath();
+    canvasCtx.moveTo(0, centerH + boxH_down);
+    canvasCtx.lineTo(canvasElement.width, centerH + boxH_down);
+    canvasCtx.stroke();
+  }
   canvasCtx.setLineDash([]);
 
   // Gaze target circle (center)
@@ -1268,7 +1274,8 @@ function drawGazeDot(diffX, diffY, bookDetected) {
   gazeDot.classList.remove("hidden");
   
   // Interpolate position - map X and Y to percentage space
-  const dotX = 50 + (diffX / (YAW_THRESHOLD * 2)) * 50;
+  // We use YAW_THRESHOLD * 4 to allow a wider visual space for horizontal movement of the dot
+  const dotX = 50 + (diffX / (YAW_THRESHOLD * 4)) * 50;
   
   let dotY;
   if (diffY < 0) {
@@ -1284,7 +1291,7 @@ function drawGazeDot(diffX, diffY, bookDetected) {
   gazeDot.style.left = `${clampedX}%`;
   gazeDot.style.top = `${clampedY}%`;
 
-  const isYawAway = Math.abs(diffX) > YAW_THRESHOLD;
+  const isYawAway = false; // Disable horizontal gaze check as per user feedback
   
   let isPitchAway = false;
   if (diffY < -PITCH_THRESHOLD) {
