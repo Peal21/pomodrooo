@@ -47,6 +47,7 @@ let isTimerRunning = false;
 let isDistracted = false; // Severe distraction (red overlay, timer paused)
 let isGazeDistracted = false; // Gaze distraction (no overlay, timer running, logs loss time)
 let requireBookInFrame = false; // Default to false (allows looking down at desk as focused by default)
+let isTrackingEnabled = true; // Master toggle for AI camera tracking
 
 // Statistics
 let totalFocusedSeconds = 0;
@@ -112,6 +113,7 @@ const logPhone = document.querySelector("#log-phone span");
 const logHands = document.querySelector("#log-hands span");
 const logObjects = document.querySelector("#log-objects span");
 const toggleBookCheck = document.getElementById("toggle-book-check");
+const toggleAiTracking = document.getElementById("toggle-ai-tracking");
 
 // ==========================================
 // INITIALIZATION
@@ -276,6 +278,23 @@ function predictLoop() {
 }
 
 function runDetections() {
+  if (!isTrackingEnabled) {
+    // Clear canvas and hide overlays
+    canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+    logPresence.textContent = "Disabled";
+    logPresence.className = "status-warn";
+    logGaze.textContent = "Disabled";
+    logGaze.className = "status-warn";
+    logPhone.textContent = "Disabled";
+    logPhone.className = "";
+    logHands.textContent = "Disabled";
+    logHands.className = "";
+    logObjects.textContent = "Disabled";
+    logObjects.className = "";
+    gazeDot.classList.add("hidden");
+    return;
+  }
+
   if (!faceLandmarker || !objectDetector || !handLandmarker) return;
 
   const timestamp = performance.now();
@@ -919,6 +938,34 @@ function setupEventListeners() {
   taskForm.addEventListener("submit", (e) => {
     e.preventDefault();
     addTask();
+  });
+
+  // AI Tracking Master Toggle
+  toggleAiTracking.addEventListener("change", () => {
+    isTrackingEnabled = toggleAiTracking.checked;
+    
+    if (!isTrackingEnabled) {
+      systemStatusText.textContent = "AI Tracking Disabled.";
+      statusDot.className = "status-dot orange";
+      
+      // Stop alert sound if it was playing
+      alertSound.loop = false;
+      alertSound.pause();
+      alertSound.currentTime = 0;
+      
+      // Hide distraction overlay if it was showing due to camera tracking
+      if (isDistracted && (distractionMessage.innerHTML.includes("Phone") || distractionMessage.innerHTML.includes("face") || distractionMessage.innerHTML.includes("desk"))) {
+        triggerFocusRestore();
+      }
+    } else {
+      if (isCalibrated) {
+        systemStatusText.textContent = "AI Active. Focus system active.";
+        statusDot.className = "status-dot green";
+      } else {
+        systemStatusText.textContent = "Gaze Calibration Required.";
+        statusDot.className = "status-dot orange";
+      }
+    }
   });
 
   // Strict Book Verification Toggle
