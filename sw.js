@@ -1,4 +1,4 @@
-const CACHE_NAME = 'focussphere-v13';
+const CACHE_NAME = 'focussphere-v14';
 const ASSETS = [
   './',
   './index.html',
