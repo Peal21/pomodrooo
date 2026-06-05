@@ -597,13 +597,13 @@ function triggerDistraction(absent, phone, type = null) {
   // Dynamic alert warning message
   let msg = "Please focus back on your study to resume the timer.";
   if (type === "blur") {
-    msg = "⚠️ Window lost focus! You opened another application or window. Stay focused on your study!";
+    msg = "⚠️ <strong>LOCKDOWN VIOLATION!</strong> Window lost focus! You opened another application or window. Keyboard/Mouse is disabled. Return and stay focused on your study!";
   } else if (type === "visibility") {
-    msg = "⚠️ Tab switched! You cannot open other tabs during your study session.";
+    msg = "⚠️ <strong>LOCKDOWN VIOLATION!</strong> Tab switched! Swapping tabs is strictly prohibited during focus sessions. Keyboard/Mouse is disabled.";
   } else if (type === "fullscreen") {
-    msg = "⚠️ Fullscreen exited! You must study in Fullscreen Mode to prevent distractions.";
+    msg = "⚠️ <strong>ABSOLUTE LOCKDOWN!</strong> Fullscreen exited. You CANNOT disable Fullscreen mode under any circumstances! Keyboard/Mouse is fully locked. Click anywhere on the screen to force re-enter Fullscreen mode.";
   } else if (type === "reload") {
-    msg = "⚠️ Escape attempt detected! Page reload detected. The timer has resumed, and you must stay focused!";
+    msg = "⚠️ <strong>LOCKDOWN ESCAPE ATTEMPT DETECTED!</strong> Page reload detected. The timer has resumed and keyboard/mouse is locked. You must stay focused in Fullscreen mode!";
   } else if (phone >= STREAK_PHONE_TRIGGER) {
     msg = "⚠️ Phone detected! Please put your phone away to continue.";
   } else if (absent >= STREAK_ABSENT_TRIGGER) {
