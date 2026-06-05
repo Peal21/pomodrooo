@@ -62,6 +62,9 @@ let isStartTimeManuallyEdited = false;
 
 // Performance optimization (Frame skipping)
 let frameCount = 0;
+let lastFaceResult = null;
+let lastObjectResult = null;
+let lastHandResult = null;
 
 // Audio alerts
 const alertSound = document.getElementById("sound-alert");
@@ -76,6 +79,8 @@ const canvasElement = document.getElementById("output-canvas");
 const canvasCtx = canvasElement.getContext("2d");
 const gazeDot = document.getElementById("gaze-dot");
 const cameraPlaceholder = document.getElementById("camera-placeholder");
+const cameraPlaceholderText = document.getElementById("camera-placeholder-text");
+const btnRetryCamera = document.getElementById("btn-retry-camera");
 
 // Buttons
 const btnStart = document.getElementById("btn-start");
@@ -254,11 +259,16 @@ function stopWebcam() {
 
 // Start webcam stream
 async function startWebcam() {
+  if (btnRetryCamera) btnRetryCamera.classList.add("hidden");
+  if (cameraPlaceholderText) cameraPlaceholderText.textContent = "Requesting camera access...";
+
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     console.error("Camera API not supported or blocked (insecure context)");
     systemStatusText.textContent = "Camera not supported (Insecure context)";
     statusDot.className = "status-dot red";
-    alert("⚠️ Camera API is not available! This is usually because the browser blocks camera access when not running on 'localhost' or an HTTPS connection.");
+    if (cameraPlaceholderText) {
+      cameraPlaceholderText.textContent = "⚠️ Camera access is not supported. Ensure you are using HTTPS.";
+    }
     return;
   }
 
@@ -280,6 +290,11 @@ async function startWebcam() {
     }
 
     webcamElement.srcObject = stream;
+    
+    // Explicitly call play() which is required for mobile browsers
+    webcamElement.play().catch(err => {
+      console.warn("Failed to play webcam video element:", err);
+    });
     
     webcamElement.onloadeddata = () => {
       cameraPlaceholder.classList.add("hidden");
@@ -306,17 +321,22 @@ async function startWebcam() {
     console.error("Webcam access failed:", err);
     statusDot.className = "status-dot red";
     
-    let userMsg = `⚠️ Camera Error: ${err.name} - ${err.message}`;
+    let userMsg = `Camera Error: ${err.name}`;
     if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
-      userMsg = "⚠️ Camera access was denied! Please click the camera icon in Chrome's URL bar (top right) and allow camera access for this site, then reload.";
+      userMsg = "Camera access was denied. Please click the button below to retry and grant permission.";
     } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
-      userMsg = "⚠️ No webcam detected. Please plug in or enable your webcam and try again.";
+      userMsg = "No webcam detected. Please plug in or enable your webcam and retry.";
     } else if (err.name === "NotReadableError" || err.name === "TrackStartError") {
-      userMsg = "⚠️ Your camera is already in use by another app (like Zoom, Teams, FaceTime, or another tab). Please close those apps and reload this page.";
+      userMsg = "Camera is already in use by another app or tab. Close other apps and retry.";
     }
     
     systemStatusText.textContent = `Error: ${err.name}`;
-    alert(userMsg);
+    if (cameraPlaceholderText) {
+      cameraPlaceholderText.textContent = `⚠️ ${userMsg}`;
+    }
+    if (btnRetryCamera) {
+      btnRetryCamera.classList.remove("hidden");
+    }
   }
 }
 
@@ -369,14 +389,36 @@ function runDetections() {
   // Clear canvas
   canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
 
-  // 1. Run Face Landmarker
-  const faceResult = faceLandmarker.detectForVideo(webcamElement, timestamp);
+  // Stagger model runs to dramatically optimize CPU/GPU load on mobile devices
+  // FaceLandmarker: Run every 2nd detection frame
+  if (frameCount % 2 === 0 || !lastFaceResult) {
+    try {
+      lastFaceResult = faceLandmarker.detectForVideo(webcamElement, timestamp);
+    } catch (e) {
+      console.warn("FaceLandmarker detection failed:", e);
+    }
+  }
+  const faceResult = lastFaceResult || { faceLandmarks: [] };
   
-  // 2. Run Object Detector
-  const objectResult = objectDetector.detectForVideo(webcamElement, timestamp);
+  // ObjectDetector: Run every 6th detection frame (phone/book detections don't need real-time 15fps speed)
+  if (frameCount % 6 === 0 || !lastObjectResult) {
+    try {
+      lastObjectResult = objectDetector.detectForVideo(webcamElement, timestamp);
+    } catch (e) {
+      console.warn("ObjectDetector detection failed:", e);
+    }
+  }
+  const objectResult = lastObjectResult || { detections: [] };
 
-  // 3. Run Hand Landmarker
-  const handResult = handLandmarker.detectForVideo(webcamElement, timestamp);
+  // HandLandmarker: Run every 4th detection frame (hand tracking skeleton outlines)
+  if (frameCount % 4 === 0 || !lastHandResult) {
+    try {
+      lastHandResult = handLandmarker.detectForVideo(webcamElement, timestamp);
+    } catch (e) {
+      console.warn("HandLandmarker detection failed:", e);
+    }
+  }
+  const handResult = lastHandResult || { landmarks: [], worldLandmarks: [], handedness: [] };
 
   let facePresent = faceResult.faceLandmarks.length > 0;
   let personDetected = false;
@@ -1026,6 +1068,13 @@ function setupEventListeners() {
     systemStatusText.textContent = "Keep looking straight at the screen...";
     statusDot.className = "status-dot orange";
   });
+
+  // Camera retry
+  if (btnRetryCamera) {
+    btnRetryCamera.addEventListener("click", () => {
+      startWebcam();
+    });
+  }
 
   // Task submit
   taskForm.addEventListener("submit", (e) => {

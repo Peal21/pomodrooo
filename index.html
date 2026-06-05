@@ -213,7 +213,10 @@
         <div class="camera-feed-container">
           <div class="camera-placeholder" id="camera-placeholder">
             <div class="placeholder-icon">📸</div>
-            <p>Camera feed is loading...</p>
+            <p id="camera-placeholder-text">Camera feed is loading...</p>
+            <button id="btn-retry-camera" class="btn btn-secondary hidden" style="width: auto; margin-top: 0.75rem; padding: 0.4rem 0.85rem; font-size: 0.8rem; border-radius: 8px;">
+              Grant Camera Access
+            </button>
           </div>
           <!-- Video element for webcam -->
           <video id="webcam" autoplay playsinline muted class="webcam-video hidden"></video>
