@@ -58,6 +58,7 @@ let distractionCount = 0;
 // Tasks
 let tasks = [];
 let activeTaskId = null;
+let isStartTimeManuallyEdited = false;
 
 // Performance optimization (Frame skipping)
 let frameCount = 0;
@@ -138,12 +139,28 @@ document.addEventListener("DOMContentLoaded", () => {
   recoverSession(); // Restore session if reload/exit was attempted
 });
 
-// Sets default task start time to current HH:MM
+// Sets default task start time to current HH:MM in Dhaka timezone
 function setDefaultStartTime() {
-  const now = new Date();
-  const hours = String(now.getHours()).padStart(2, "0");
-  const minutes = String(now.getMinutes()).padStart(2, "0");
-  taskStartTimeInput.value = `${hours}:${minutes}`;
+  try {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Dhaka',
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: false
+    });
+    const parts = formatter.formatToParts(new Date());
+    let hr = "00", min = "00";
+    parts.forEach(part => {
+      if (part.type === 'hour') hr = part.value.padStart(2, "0");
+      if (part.type === 'minute') min = part.value.padStart(2, "0");
+    });
+    taskStartTimeInput.value = `${hr}:${min}`;
+  } catch (err) {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, "0");
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+    taskStartTimeInput.value = `${hours}:${minutes}`;
+  }
 }
 
 // Load AI models via CDN files
@@ -1010,6 +1027,14 @@ function setupEventListeners() {
     addTask();
   });
 
+  // Track if user manually edits task starting time
+  taskStartTimeInput.addEventListener("input", () => {
+    isStartTimeManuallyEdited = true;
+  });
+  taskStartTimeInput.addEventListener("change", () => {
+    isStartTimeManuallyEdited = true;
+  });
+
   // AI Tracking Master Toggle
   toggleAiTracking.addEventListener("change", () => {
     isTrackingEnabled = toggleAiTracking.checked;
@@ -1166,6 +1191,7 @@ function addTask() {
 
   // Reset task input fields
   taskNameInput.value = "";
+  isStartTimeManuallyEdited = false;
   setDefaultStartTime();
 }
 
@@ -1512,6 +1538,11 @@ function updateDigitalClock() {
   
   const formatter = new Intl.DateTimeFormat('en-US', options);
   clockElement.textContent = formatter.format(now);
+
+  // Auto-update task start time to current time if the user hasn't edited it manually and isn't currently editing it.
+  if (!isStartTimeManuallyEdited && document.activeElement !== taskStartTimeInput) {
+    setDefaultStartTime();
+  }
 
   // Extract hour, minute, second for analog clock in Dhaka timezone
   try {
