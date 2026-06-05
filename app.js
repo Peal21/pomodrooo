@@ -690,7 +690,14 @@ function triggerDistraction(absent, phone, type = null) {
     reFsBtn.onclick = (e) => {
       e.stopPropagation();
       if (document.documentElement.requestFullscreen) {
-        document.documentElement.requestFullscreen().catch(err => console.warn(err));
+        document.documentElement.requestFullscreen()
+          .then(() => triggerFocusRestore())
+          .catch(err => {
+            console.warn("Fullscreen request rejected, restoring focus anyway:", err);
+            triggerFocusRestore();
+          });
+      } else {
+        triggerFocusRestore(); // Fallback for iPhone Safari
       }
     };
   }
@@ -1223,7 +1230,16 @@ function setupEventListeners() {
   document.addEventListener("click", () => {
     if (isTimerRunning && !document.fullscreenElement) {
       if (document.documentElement.requestFullscreen) {
-        document.documentElement.requestFullscreen().catch(err => console.warn(err));
+        document.documentElement.requestFullscreen()
+          .then(() => {
+            if (isDistracted) triggerFocusRestore();
+          })
+          .catch(err => {
+            console.warn("Fullscreen request rejected, restoring focus anyway:", err);
+            if (isDistracted) triggerFocusRestore();
+          });
+      } else {
+        if (isDistracted) triggerFocusRestore();
       }
     }
   });
