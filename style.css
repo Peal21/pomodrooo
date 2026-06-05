@@ -849,6 +849,7 @@ input[type="time"]:focus {
   left: 0;
   width: 100%;
   height: 100%;
+  object-fit: cover; /* Match webcam video scaling and cropping */
   z-index: 3;
   pointer-events: none;
   transform: scaleX(-1); /* Mirror canvas landmarks to match webcam */
@@ -1184,6 +1185,20 @@ input[type="time"]:focus {
 
 /* Responsive styles for Bangladesh Time Clocks on small screens */
 @media (max-width: 600px) {
+  .app-container {
+    padding: 0.75rem;
+  }
+  
+  .panel {
+    padding: 1rem;
+    border-radius: 16px;
+  }
+  
+  .app-header {
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+  }
+
   .timer-bd-clock-container {
     padding: 0.85rem 1.25rem;
     gap: 1.25rem;
@@ -1225,6 +1240,162 @@ input[type="time"]:focus {
   .analog-clock .second {
     height: 30px;
     width: 1px;
+  }
+}
+
+/* Mobile Landscape Optimization */
+@media (max-width: 950px) and (orientation: landscape) {
+  .app-container {
+    padding: 0.5rem;
+  }
+
+  .app-header {
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .app-grid {
+    grid-template-columns: 1.2fr 1fr;
+    gap: 1rem !important;
+  }
+
+  /* Keep timer on left side and sidebars on right side */
+  .panel-main {
+    order: 1;
+  }
+  .panel-tasks {
+    order: 2;
+  }
+  .panel-camera {
+    order: 3;
+  }
+
+  .panel {
+    padding: 1rem;
+    border-radius: 16px;
+  }
+
+  /* Scale circular progress down to fit screen height */
+  .circular-progress {
+    width: 190px;
+    height: 190px;
+  }
+
+  .timer-clock {
+    font-size: 2.8rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .timer-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+  }
+
+  .active-task-display {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.65rem;
+  }
+
+  .timer-bd-clock-container {
+    padding: 0.6rem 1rem;
+    gap: 1rem;
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .digital-clock-glowing {
+    font-size: 2.2rem;
+  }
+
+  .analog-clock {
+    width: 60px;
+    height: 60px;
+    border-width: 2px;
+  }
+
+  .analog-clock .marker.m12,
+  .analog-clock .marker.m6 {
+    height: 5px;
+    width: 1.5px;
+    top: 3px;
+  }
+  .analog-clock .marker.m6 {
+    bottom: 3px;
+  }
+
+  .analog-clock .marker.m3,
+  .analog-clock .marker.m9 {
+    width: 5px;
+    height: 1.5px;
+  }
+  .analog-clock .marker.m3 { right: 3px; }
+  .analog-clock .marker.m9 { left: 3px; }
+
+  .analog-clock .hour {
+    height: 16px;
+    width: 2.5px;
+  }
+
+  .analog-clock .minute {
+    height: 22px;
+    width: 2px;
+  }
+
+  .analog-clock .second {
+    height: 25px;
+    width: 1px;
+  }
+
+  .timer-settings {
+    margin-bottom: 1rem;
+    gap: 0.5rem;
+  }
+
+  .preset-btn {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.75rem;
+    border-radius: 8px;
+  }
+
+  .custom-time-input {
+    padding: 0.15rem 0.4rem;
+    font-size: 0.75rem;
+  }
+
+  .custom-time-input input {
+    width: 35px;
+  }
+
+  .timer-controls {
+    margin-bottom: 1rem;
+    gap: 0.75rem;
+  }
+
+  .btn-lg {
+    padding: 0.65rem 1rem;
+    font-size: 0.85rem;
+    border-radius: 10px;
+  }
+
+  .stats-dashboard {
+    gap: 0.5rem;
+  }
+
+  .stat-card {
+    padding: 0.5rem;
+    border-radius: 10px;
+  }
+
+  .stat-icon {
+    font-size: 1rem;
+  }
+
+  .stat-value {
+    font-size: 0.8rem;
+  }
+
+  .stat-label {
+    font-size: 0.6rem;
   }
 }
 

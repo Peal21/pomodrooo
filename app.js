@@ -339,6 +339,12 @@ function predictLoop() {
 }
 
 function runDetections() {
+  // Ensure canvas dimensions match webcam video dimensions dynamically (handles device orientation changes)
+  if (webcamElement.videoWidth && (canvasElement.width !== webcamElement.videoWidth || canvasElement.height !== webcamElement.videoHeight)) {
+    canvasElement.width = webcamElement.videoWidth;
+    canvasElement.height = webcamElement.videoHeight;
+  }
+
   if (!isTrackingEnabled) {
     // Clear canvas and hide overlays
     canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
