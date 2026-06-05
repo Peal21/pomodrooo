@@ -1032,32 +1032,143 @@ input[type="time"]:focus {
   margin-top: 0.5rem;
 }
 
-/* Digital Glowing Clock styling (Centered below Timer) */
+/* Digital & Analog Glowing Clock styling (Centered below Timer) */
 .timer-bd-clock-container {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
+  gap: 2rem;
   margin-top: 1rem;
   margin-bottom: 1.5rem;
-  padding: 0.75rem 1.5rem;
+  padding: 1.25rem 2rem;
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--border-panel);
-  border-radius: 14px;
+  border-radius: 20px;
   backdrop-filter: var(--glass-blur);
   box-shadow: var(--shadow-glow);
   width: 100%;
-  max-width: 360px;
+  max-width: 580px;
+  box-sizing: border-box;
+}
+
+.digital-clock-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  flex-grow: 1;
 }
 
 .digital-clock-glowing {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 2.8rem;
-  font-weight: 700;
-  color: #fca5a5; /* Neon Red/Rose */
-  text-shadow: 0 0 15px rgba(239, 68, 68, 0.8), 0 0 30px rgba(239, 68, 68, 0.5);
-  letter-spacing: 0.05em;
+  font-size: 4.2rem;
+  font-weight: 800;
+  color: #ff3b30; /* Neon Red */
+  text-shadow: 0 0 12px rgba(255, 59, 48, 0.85), 0 0 25px rgba(255, 59, 48, 0.45);
+  letter-spacing: 0.02em;
   line-height: 1;
+  white-space: nowrap;
+}
+
+/* Analog Clock styling */
+.analog-clock {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.2);
+  border: 3px solid rgba(255, 59, 48, 0.5); /* Glowing Red Border */
+  box-shadow: 0 0 15px rgba(255, 59, 48, 0.35), inset 0 0 10px rgba(255, 59, 48, 0.2);
+  flex-shrink: 0;
+  display: block;
+}
+
+.analog-clock .marker {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 1px;
+}
+
+.analog-clock .marker.m12,
+.analog-clock .marker.m6 {
+  width: 2.5px;
+  height: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.analog-clock .marker.m12 {
+  top: 4px;
+  background: #ff3b30; /* Highlight 12 with red */
+  box-shadow: 0 0 5px rgba(255, 59, 48, 0.8);
+}
+
+.analog-clock .marker.m6 {
+  bottom: 4px;
+}
+
+.analog-clock .marker.m3,
+.analog-clock .marker.m9 {
+  width: 8px;
+  height: 2.5px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.analog-clock .marker.m3 {
+  right: 4px;
+}
+
+.analog-clock .marker.m9 {
+  left: 4px;
+}
+
+.analog-clock .hand {
+  position: absolute;
+  bottom: 50%;
+  left: 50%;
+  transform-origin: bottom center;
+  border-radius: 4px;
+}
+
+.analog-clock .hour {
+  width: 4px;
+  height: 28px;
+  background: #fff;
+  transform: translate(-50%, 0) rotate(0deg);
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.5);
+  z-index: 5;
+}
+
+.analog-clock .minute {
+  width: 3px;
+  height: 38px;
+  background: #a5b4fc; /* Lavender Minute Hand */
+  transform: translate(-50%, 0) rotate(0deg);
+  box-shadow: 0 0 4px rgba(165, 180, 252, 0.5);
+  z-index: 6;
+}
+
+.analog-clock .second {
+  width: 1.5px;
+  height: 44px;
+  background: #ff3b30; /* Neon Red Second Hand */
+  transform: translate(-50%, 0) rotate(0deg);
+  box-shadow: 0 0 8px rgba(255, 59, 48, 0.8);
+  z-index: 7;
+}
+
+.analog-clock .center-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fff;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+  z-index: 10;
 }
 
 .timezone-label {
@@ -1067,6 +1178,52 @@ input[type="time"]:focus {
   text-transform: uppercase;
   letter-spacing: 0.12em;
   margin-top: 0.35rem;
+}
+
+/* Responsive styles for Bangladesh Time Clocks on small screens */
+@media (max-width: 600px) {
+  .timer-bd-clock-container {
+    padding: 0.85rem 1.25rem;
+    gap: 1.25rem;
+    max-width: 100%;
+  }
+
+  .digital-clock-glowing {
+    font-size: 2.6rem;
+  }
+
+  .analog-clock {
+    width: 70px;
+    height: 70px;
+    border-width: 2px;
+  }
+
+  .analog-clock .marker.m12,
+  .analog-clock .marker.m6 {
+    height: 6px;
+    width: 2px;
+  }
+
+  .analog-clock .marker.m3,
+  .analog-clock .marker.m9 {
+    width: 6px;
+    height: 2px;
+  }
+
+  .analog-clock .hour {
+    height: 20px;
+    width: 3px;
+  }
+
+  .analog-clock .minute {
+    height: 26px;
+    width: 2px;
+  }
+
+  .analog-clock .second {
+    height: 30px;
+    width: 1px;
+  }
 }
 
 /* Privacy Overlay for Hidden Camera Feed */

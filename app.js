@@ -1512,6 +1512,40 @@ function updateDigitalClock() {
   
   const formatter = new Intl.DateTimeFormat('en-US', options);
   clockElement.textContent = formatter.format(now);
+
+  // Extract hour, minute, second for analog clock in Dhaka timezone
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Dhaka',
+      hour: 'numeric',
+      minute: 'numeric',
+      second: 'numeric',
+      hour12: false
+    }).formatToParts(now);
+
+    let hr = 0, min = 0, sec = 0;
+    parts.forEach(part => {
+      if (part.type === 'hour') hr = parseInt(part.value);
+      if (part.type === 'minute') min = parseInt(part.value);
+      if (part.type === 'second') sec = parseInt(part.value);
+    });
+
+    // Calculate angles
+    const secAngle = sec * 6; // 360 / 60
+    const minAngle = min * 6 + sec * 0.1; // 360 / 60
+    const hrAngle = (hr % 12) * 30 + min * 0.5; // 360 / 12
+
+    // Update analog hands
+    const hrHand = document.getElementById("analog-hour");
+    const minHand = document.getElementById("analog-minute");
+    const secHand = document.getElementById("analog-second");
+
+    if (hrHand) hrHand.style.transform = `translate(-50%, 0) rotate(${hrAngle}deg)`;
+    if (minHand) minHand.style.transform = `translate(-50%, 0) rotate(${minAngle}deg)`;
+    if (secHand) secHand.style.transform = `translate(-50%, 0) rotate(${secAngle}deg)`;
+  } catch (err) {
+    console.warn("Failed to update analog clock hands:", err);
+  }
 }
 
 // Start clock interval
