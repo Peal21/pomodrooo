@@ -1168,21 +1168,27 @@ function setupEventListeners() {
 
   // Window Blur, Visibility & Fullscreen Exit Distraction Enforcements
   window.addEventListener("blur", () => {
-    if (isTimerRunning && !isDistracted) {
+    if (isTrackingEnabled && isTimerRunning && !isDistracted) {
       triggerDistraction(0, 0, "blur");
     }
   });
 
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden && isTimerRunning && !isDistracted) {
+    if (isTrackingEnabled && document.hidden && isTimerRunning && !isDistracted) {
       triggerDistraction(0, 0, "visibility");
     }
   });
 
   document.addEventListener("fullscreenchange", () => {
     const isFullscreen = document.fullscreenElement !== null;
-    if (!isFullscreen && isTimerRunning && !isDistracted) {
-      triggerDistraction(0, 0, "fullscreen");
+    if (!isFullscreen) {
+      if (isTrackingEnabled && isTimerRunning && !isDistracted) {
+        triggerDistraction(0, 0, "fullscreen");
+      }
+    } else {
+      if (isTimerRunning && isDistracted) {
+        triggerFocusRestore();
+      }
     }
   });
 
