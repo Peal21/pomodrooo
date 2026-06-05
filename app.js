@@ -769,6 +769,7 @@ function startTimer() {
     btnPause.classList.add("hidden"); // Hide Pause button to prevent manual pausing (traps the user)
     btnReset.classList.add("hidden"); // Hide Reset button too to enforce lockdown
     btnRestart.classList.add("hidden");
+    document.body.classList.add("lockdown-active");
   } else {
     btnPause.classList.remove("hidden");
     btnReset.classList.remove("hidden");
@@ -835,6 +836,7 @@ function startTimerInterval() {
 }
 
 function pauseTimer() {
+  document.body.classList.remove("lockdown-active");
   isTimerRunning = false;
   btnPause.classList.add("hidden");
   btnStart.classList.remove("hidden");
@@ -1138,20 +1140,27 @@ function setupEventListeners() {
     }
   });
 
-  // Block key reloads and Escape keys to prevent simple escapes
+  // Block all keyboard inputs during active lockdown study sessions
   window.addEventListener("keydown", (e) => {
     if (isTimerRunning && isTrackingEnabled) {
-      // Block F5, Cmd+R, Ctrl+R
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // If they tried to refresh, show warning alert
       if (e.key === "F5" || ((e.ctrlKey || e.metaKey) && e.key === "r")) {
-        e.preventDefault();
-        alert("⚠️ Page reloading is disabled during active study sessions!");
-      }
-      // Block Escape key to prevent leaving fullscreen easily
-      if (e.key === "Escape" || e.keyCode === 27) {
-        e.preventDefault();
+        alert("⚠️ Keyboard inputs and page reloads are disabled during active study sessions!");
       }
     }
   }, true);
+
+  // Re-request fullscreen on any document click if they somehow escaped fullscreen
+  document.addEventListener("click", () => {
+    if (isTimerRunning && isTrackingEnabled && !document.fullscreenElement) {
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(err => console.warn(err));
+      }
+    }
+  });
 }
 
 function addTask() {
@@ -1562,6 +1571,7 @@ function recoverSession() {
         btnPause.classList.add("hidden");
         btnReset.classList.add("hidden");
         btnRestart.classList.add("hidden");
+        document.body.classList.add("lockdown-active");
       } else {
         btnPause.classList.remove("hidden");
         btnReset.classList.remove("hidden");

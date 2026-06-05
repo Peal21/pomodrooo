@@ -1163,4 +1163,15 @@ input[type="time"]:focus {
   display: none !important;
 }
 
+/* Lockdown Mode - block all mouse/pointer interactions across the app */
+body.lockdown-active {
+  pointer-events: none !important;
+}
+
+/* Allow pointer-events ONLY on the distraction overlay and its contents so they can click Re-enter Fullscreen */
+body.lockdown-active #distraction-overlay,
+body.lockdown-active #distraction-overlay * {
+  pointer-events: auto !important;
+}
+
 
