@@ -1504,4 +1504,10 @@ body.lockdown-active #distraction-overlay * {
   pointer-events: auto !important;
 }
 
+/* Allow pointer-events on the tasks panel even during active lockdown sessions so users can manage checklist tasks */
+body.lockdown-active #tasks-panel,
+body.lockdown-active #tasks-panel * {
+  pointer-events: auto !important;
+}
+
 

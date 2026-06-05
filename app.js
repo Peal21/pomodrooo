@@ -1149,6 +1149,11 @@ function setupEventListeners() {
   // Block all keyboard inputs during active lockdown study sessions
   window.addEventListener("keydown", (e) => {
     if (isTimerRunning) {
+      // Allow keyboard inputs if typing inside the task form inputs or presets inputs
+      if (e.target && (e.target.id === "task-name" || e.target.id === "task-duration" || e.target.id === "task-start-time" || e.target.id === "custom-minutes")) {
+        return; // Allow typing in text inputs
+      }
+
       e.preventDefault();
       e.stopPropagation();
       
