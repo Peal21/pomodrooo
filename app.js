@@ -48,6 +48,7 @@ let isDistracted = false; // Severe distraction (red overlay, timer paused)
 let isGazeDistracted = false; // Gaze distraction (no overlay, timer running, logs loss time)
 let requireBookInFrame = false; // Default to false (allows looking down at desk as focused by default)
 let isTrackingEnabled = true; // Master toggle for AI camera tracking
+let updateDial = null; // Sync function for circular clock picker
 
 // Statistics
 let totalFocusedSeconds = 0;
@@ -784,6 +785,7 @@ function setupTimerPresets() {
       
       const minutes = parseInt(btn.dataset.minutes);
       setTimerDuration(minutes);
+      if (updateDial) updateDial(minutes);
     });
   });
 
@@ -794,8 +796,111 @@ function setupTimerPresets() {
     const val = parseInt(customMinutesInput.value);
     if (val > 0) {
       setTimerDuration(val);
+      if (updateDial) updateDial(val);
     }
   });
+
+  initDialPicker();
+}
+
+function initDialPicker() {
+  const dialSvg = document.querySelector(".dial-svg");
+  const dialKnob = document.getElementById("dial-knob");
+  const dialActiveTrack = document.getElementById("dial-active-track");
+  const dialMinutesValue = document.getElementById("dial-minutes-value");
+
+  if (!dialSvg) return;
+
+  const radius = 50;
+  const centerX = 65;
+  const centerY = 65;
+  const circumference = 2 * Math.PI * radius;
+
+  let isDragging = false;
+
+  updateDial = (minutes) => {
+    if (!dialKnob || !dialActiveTrack || !dialMinutesValue) return;
+    
+    // Clamp minutes between 1 and 60 for visual rotation
+    const displayMin = Math.max(1, Math.min(60, minutes));
+    const angle = (displayMin / 60) * 2 * Math.PI;
+
+    // Calculate knob position
+    const knobX = centerX + radius * Math.sin(angle);
+    const knobY = centerY - radius * Math.cos(angle);
+
+    dialKnob.setAttribute("cx", knobX);
+    dialKnob.setAttribute("cy", knobY);
+
+    // Update active fill track
+    const offset = circumference - (displayMin / 60) * circumference;
+    dialActiveTrack.style.strokeDashoffset = offset;
+
+    // Update text and input values
+    dialMinutesValue.textContent = minutes;
+    customMinutesInput.value = minutes;
+  };
+
+  function handleMove(clientX, clientY) {
+    if (isTimerRunning) return;
+    
+    const rect = dialSvg.getBoundingClientRect();
+    const x = clientX - rect.left - centerX;
+    const y = clientY - rect.top - centerY;
+
+    // Calculate angle starting from top (12 o'clock) clockwise
+    let angle = Math.atan2(y, x) + Math.PI / 2;
+    if (angle < 0) angle += 2 * Math.PI;
+
+    // Convert angle to minutes (1 rotation = 60 minutes)
+    let minutes = Math.round((angle / (2 * Math.PI)) * 60);
+    if (minutes === 0) minutes = 60;
+
+    // Remove active state from presets when custom dial is used
+    presetButtons.forEach(b => b.classList.remove("active"));
+
+    updateDial(minutes);
+    setTimerDuration(minutes);
+  }
+
+  // Mouse events
+  dialSvg.addEventListener("mousedown", (e) => {
+    if (isTimerRunning) return;
+    isDragging = true;
+    handleMove(e.clientX, e.clientY);
+  });
+
+  window.addEventListener("mousemove", (e) => {
+    if (!isDragging || isTimerRunning) return;
+    handleMove(e.clientX, e.clientY);
+  });
+
+  window.addEventListener("mouseup", () => {
+    isDragging = false;
+  });
+
+  // Touch events for mobile
+  dialSvg.addEventListener("touchstart", (e) => {
+    if (isTimerRunning) return;
+    isDragging = true;
+    if (e.touches.length > 0) {
+      handleMove(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  });
+
+  window.addEventListener("touchmove", (e) => {
+    if (!isDragging || isTimerRunning) return;
+    if (e.touches.length > 0) {
+      handleMove(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  });
+
+  window.addEventListener("touchend", () => {
+    isDragging = false;
+  });
+
+  // Init position to 25 mins
+  updateDial(25);
 }
 
 function setTimerDuration(minutes) {
@@ -1357,9 +1462,24 @@ function renderTasks() {
     checkbox.addEventListener("change", (e) => {
       e.stopPropagation();
       task.completed = checkbox.checked;
+      
+      // Clear active status if task is completed
+      if (task.completed && activeTaskId === task.id) {
+        activeTaskId = null;
+        activeTaskDisplay.textContent = "No active task selected";
+      }
+      
       saveTasks();
       renderTasks();
     });
+
+    // Prevent checkbox container clicks from bubbling to li click handler
+    const checkboxContainer = li.querySelector(".task-checkbox-container");
+    if (checkboxContainer) {
+      checkboxContainer.addEventListener("click", (e) => {
+        e.stopPropagation();
+      });
+    }
 
     // Handle click to set active task
     li.addEventListener("click", () => {
