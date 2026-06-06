@@ -663,6 +663,10 @@ body.distracted-active .progress-ring__circle-dotted {
   gap: 0.75rem;
   margin-bottom: 2rem;
   width: 100%;
+  transition: opacity 0.4s ease, max-height 0.4s ease, margin 0.4s ease, visibility 0.4s ease;
+  max-height: 200px;
+  opacity: 1;
+  visibility: visible;
 }
 
 .presets-row {
@@ -1906,6 +1910,17 @@ body.lockdown-active #distraction-overlay * {
 body.lockdown-active #tasks-panel,
 body.lockdown-active #tasks-panel * {
   pointer-events: auto !important;
+}
+
+/* Hide timer presets and custom time triggers when session is active */
+body.timer-running .timer-settings {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  max-height: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  pointer-events: none !important;
+  overflow: hidden !important;
 }
 
 
