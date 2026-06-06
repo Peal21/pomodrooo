@@ -179,6 +179,26 @@ function updateTrackerVisibility(hide) {
   }
 }
 
+// Get formatted time in Dhaka timezone for ETA display
+function getDhakaFormattedETA(date) {
+  try {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Dhaka',
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: true
+    });
+    return formatter.format(date);
+  } catch (err) {
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const hr = hours % 12 || 12;
+    const min = String(minutes).padStart(2, '0');
+    return `${hr}:${min} ${ampm}`;
+  }
+}
+
 // Sets default task start time to current HH:MM in Dhaka timezone
 function setDefaultStartTime() {
   try {
@@ -702,6 +722,8 @@ function triggerDistraction(absent, phone, type = null) {
   // Record timestamp when user navigates away from tab/window
   if ((type === "blur" || type === "visibility" || type === "fullscreen") && !tabAwayTimestamp) {
     tabAwayTimestamp = Date.now();
+    // Pause interval during absence to prevent double counting if throttled ticks occur
+    pauseTimerInterval();
   }
 
   // Dynamic alert warning message
@@ -781,10 +803,19 @@ function triggerFocusRestore() {
   // Calculate and apply loss time spent on other windows/tabs
   if (tabAwayTimestamp) {
     const elapsedSecondsAway = Math.round((Date.now() - tabAwayTimestamp) / 1000);
-    totalLossSeconds += elapsedSecondsAway;
-    timeRemaining = Math.max(0, timeRemaining - elapsedSecondsAway);
+    const sessionLoss = Math.min(timeRemaining, elapsedSecondsAway);
+    totalLossSeconds += sessionLoss;
+    totalSessionSeconds += sessionLoss;
+    timeRemaining = Math.max(0, timeRemaining - sessionLoss);
     tabAwayTimestamp = null;
+    
+    updateTimerDisplay();
     updateStatsDisplay();
+    
+    if (timeRemaining <= 0) {
+      completeSession();
+      return;
+    }
   }
   
   // Stop looping alert sound
@@ -1038,6 +1069,14 @@ function startTimer() {
   isTimerRunning = true;
   btnStart.classList.add("hidden");
   
+  // Show ETA (Estimated finishing time)
+  const timerEta = document.getElementById("timer-eta");
+  if (timerEta) {
+    const finishTime = new Date(Date.now() + timeRemaining * 1000);
+    timerEta.textContent = `Ends at: ${getDhakaFormattedETA(finishTime)}`;
+    timerEta.classList.remove("hidden");
+  }
+  
   // Always hide Pause/Reset/Restart control buttons to enforce lockdown
   btnPause.classList.add("hidden");
   btnReset.classList.add("hidden");
@@ -1105,6 +1144,14 @@ function pauseTimer() {
   isTimerRunning = false;
   btnPause.classList.add("hidden");
   btnStart.classList.remove("hidden");
+  
+  tabAwayTimestamp = null;
+  
+  // Hide ETA
+  const timerEta = document.getElementById("timer-eta");
+  if (timerEta) {
+    timerEta.classList.add("hidden");
+  }
   
   pauseTimerInterval();
   
@@ -1959,6 +2006,14 @@ function recoverSession() {
       
       presetButtons.forEach(btn => btn.disabled = true);
       customMinutesInput.disabled = true;
+      
+      // Show ETA (Estimated finishing time)
+      const timerEta = document.getElementById("timer-eta");
+      if (timerEta) {
+        const finishTime = new Date(Date.now() + timeRemaining * 1000);
+        timerEta.textContent = `Ends at: ${getDhakaFormattedETA(finishTime)}`;
+        timerEta.classList.remove("hidden");
+      }
       
       startTimerInterval();
       

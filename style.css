@@ -654,6 +654,15 @@ body.distracted-active .progress-ring__circle-dotted {
   text-align: center;
 }
 
+.timer-eta {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+  letter-spacing: 0.05em;
+  transition: opacity 0.3s ease;
+}
+
 /* Timer Settings (Presets & Dial) */
 .timer-settings {
   display: flex;
