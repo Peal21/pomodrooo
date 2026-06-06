@@ -1912,15 +1912,42 @@ body.lockdown-active #tasks-panel * {
   pointer-events: auto !important;
 }
 
-/* Hide timer presets and custom time triggers when session is active */
+/* Immersive Focus Mode - hide all panels and headers when timer is running */
+body.timer-running .app-header,
+body.timer-running #tasks-panel,
+body.timer-running #camera-panel,
+body.timer-running .timer-bd-clock-container,
+body.timer-running .stats-dashboard,
+body.timer-running .timer-controls,
 body.timer-running .timer-settings {
-  opacity: 0 !important;
-  visibility: hidden !important;
-  max-height: 0 !important;
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
-  pointer-events: none !important;
-  overflow: hidden !important;
+  display: none !important;
+}
+
+body.timer-running .app-grid {
+  grid-template-columns: 1fr !important;
+  max-width: 600px;
+  margin: 0 auto;
+  min-height: calc(100vh - 100px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+body.timer-running .panel-main {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transform: scale(1.15) !important;
+  transition: transform 0.5s ease;
+  width: 100%;
+}
+
+@media (max-width: 600px) {
+  body.timer-running .panel-main {
+    transform: scale(1.0) !important;
+  }
 }
 
 
