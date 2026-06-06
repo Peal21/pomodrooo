@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <!-- CSS -->
-  <link rel="stylesheet" href="style.css?v=22">
+  <link rel="stylesheet" href="style.css?v=23">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#1e1b4b">
 </head>
@@ -100,9 +100,20 @@
         <div class="timer-display-container">
           <!-- Circular progress indicator -->
           <div class="circular-progress">
+            <div class="timer-ambient-glow" id="timer-ambient-glow"></div>
             <svg class="progress-ring" width="280" height="280" viewBox="0 0 280 280">
+              <defs>
+                <linearGradient id="timer-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#10b981" />
+                  <stop offset="100%" stop-color="#3b82f6" />
+                </linearGradient>
+                <linearGradient id="timer-distracted-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#ef4444" />
+                  <stop offset="100%" stop-color="#f59e0b" />
+                </linearGradient>
+              </defs>
               <circle class="progress-ring__circle-bg" stroke="rgba(255, 255, 255, 0.05)" stroke-width="8" fill="transparent" r="125" cx="140" cy="140" />
-              <circle id="progress-circle" class="progress-ring__circle" stroke="var(--primary-glow)" stroke-width="8" fill="transparent" r="125" cx="140" cy="140" />
+              <circle id="progress-circle" class="progress-ring__circle" stroke="url(#timer-gradient)" stroke-width="8" fill="transparent" r="125" cx="140" cy="140" />
             </svg>
             <div class="timer-text-container">
               <div id="timer-label" class="timer-label">FOCUS SESSION</div>
@@ -134,34 +145,13 @@
 
         <!-- Presets and Custom Inputs -->
         <div class="timer-settings">
-          <div class="presets-row">
-            <button class="preset-btn" data-minutes="5">5 Min</button>
-            <button class="preset-btn active" data-minutes="25">25 Min</button>
-            <button class="preset-btn" data-minutes="30">30 Min</button>
-            <button class="preset-btn" data-minutes="45">45 Min</button>
-            <button class="preset-btn" data-minutes="50">50 Min</button>
-          </div>
-          
-          <!-- Clock Dial Picker for Custom Time -->
-          <div class="clock-dial-picker-container" id="clock-dial-picker-container">
-            <div class="dial-svg-wrapper">
-              <svg class="dial-svg" width="130" height="130" viewBox="0 0 130 130">
-                <!-- Background track -->
-                <circle class="dial-bg-track" cx="65" cy="65" r="50" fill="transparent" stroke-width="6" />
-                <!-- Active fill track -->
-                <circle id="dial-active-track" class="dial-active-track" cx="65" cy="65" r="50" fill="transparent" stroke-width="6" stroke-dasharray="314.16" stroke-dashoffset="314.16" stroke-linecap="round" />
-                <!-- Knob -->
-                <circle id="dial-knob" class="dial-knob" cx="65" cy="15" r="7" />
-              </svg>
-              <div class="dial-value-container">
-                <span id="dial-minutes-value">25</span>
-                <span class="dial-unit">min</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="custom-time-input">
-            <input type="number" id="custom-minutes" min="1" max="180" placeholder="Custom">
+          <button class="preset-btn" data-minutes="5">5 Min</button>
+          <button class="preset-btn active" data-minutes="25">25 Min</button>
+          <button class="preset-btn" data-minutes="30">30 Min</button>
+          <button class="preset-btn" data-minutes="45">45 Min</button>
+          <button class="preset-btn" data-minutes="50">50 Min</button>
+          <div class="custom-time-input" id="custom-time-trigger" style="cursor: pointer;">
+            <input type="number" id="custom-minutes-display" placeholder="Custom" readonly style="cursor: pointer;">
             <span>min</span>
           </div>
         </div>
@@ -306,10 +296,47 @@
     </main>
   </div>
 
+  <!-- Custom Time Dial Modal -->
+  <div id="dial-modal" class="dial-modal hidden">
+    <div class="dial-modal-content">
+      <div class="dial-modal-header">
+        <h3>Set Custom Duration</h3>
+        <button id="btn-close-dial" class="btn-close">&times;</button>
+      </div>
+      <div class="dial-svg-wrapper">
+        <svg class="dial-svg" width="160" height="160" viewBox="0 0 160 160">
+          <defs>
+            <linearGradient id="dial-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#10b981" />
+              <stop offset="100%" stop-color="#3b82f6" />
+            </linearGradient>
+          </defs>
+          <!-- Background track -->
+          <circle class="dial-bg-track" cx="80" cy="80" r="65" fill="transparent" stroke-width="8" />
+          <!-- Active fill track -->
+          <circle id="dial-active-track" class="dial-active-track" cx="80" cy="80" r="65" fill="transparent" stroke-width="8" stroke-dasharray="408.41" stroke-dashoffset="408.41" stroke-linecap="round" />
+          <!-- Knob -->
+          <circle id="dial-knob" class="dial-knob" cx="80" cy="15" r="9" />
+        </svg>
+        <div class="dial-value-container">
+          <span id="dial-minutes-value">25</span>
+          <span class="dial-unit">min</span>
+        </div>
+      </div>
+      <div class="dial-modal-actions">
+        <div class="custom-time-input-modal">
+          <input type="number" id="custom-minutes" min="1" max="180" value="25">
+          <span>min</span>
+        </div>
+        <button id="btn-confirm-custom-time" class="btn btn-primary" style="width: 100%; border-radius: 12px; padding: 0.6rem 0;">Set Duration</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Audio elements for distraction notification -->
   <audio id="sound-alert" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav" preload="auto"></audio>
 
   <!-- MediaPipe Tasks Vision JS Library & Core Logic -->
-  <script type="module" src="app.js?v=22"></script>
+  <script type="module" src="app.js?v=23"></script>
 </body>
 </html>

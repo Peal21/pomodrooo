@@ -90,8 +90,11 @@ const btnReset = document.getElementById("btn-reset");
 const btnRestart = document.getElementById("btn-restart");
 const btnToggleTracker = document.getElementById("btn-toggle-tracker");
 const btnCalibrate = document.getElementById("btn-calibrate");
-const presetButtons = document.querySelectorAll(".preset-btn");
+const presetButtons = document.querySelectorAll(".preset-btn[data-minutes]");
+const btnTriggerCustom = document.getElementById("custom-time-trigger");
+const customMinutesDisplay = document.getElementById("custom-minutes-display");
 const customMinutesInput = document.getElementById("custom-minutes");
+const timerAmbientGlow = document.getElementById("timer-ambient-glow");
 
 // Stats Displays
 const statTotalTime = document.getElementById("stat-total-time");
@@ -710,11 +713,12 @@ function triggerDistraction(absent, phone, type = null) {
   
   // Style changes to camera feed border
   cameraFeedContainer.className = "camera-feed-container distracted";
+  document.body.classList.add("distracted-active");
 
   // Change progress circle and timer clock to red glow when distracted
   const progressCircle = document.getElementById("progress-circle");
   if (progressCircle) {
-    progressCircle.style.stroke = "var(--warning-glow)";
+    progressCircle.style.stroke = "url(#timer-distracted-gradient)";
     progressCircle.classList.add("distracted");
   }
   const timerClock = document.getElementById("timer-clock");
@@ -750,11 +754,12 @@ function triggerFocusRestore() {
   }, 400);
 
   cameraFeedContainer.className = "camera-feed-container focusing";
+  document.body.classList.remove("distracted-active");
 
   // Restore progress circle and timer clock to green glow when focusing
   const progressCircle = document.getElementById("progress-circle");
   if (progressCircle) {
-    progressCircle.style.stroke = "var(--primary-glow)";
+    progressCircle.style.stroke = "url(#timer-gradient)";
     progressCircle.classList.remove("distracted");
   }
   const timerClock = document.getElementById("timer-clock");
@@ -781,6 +786,8 @@ function setupTimerPresets() {
     btn.addEventListener("click", () => {
       if (isTimerRunning) return;
       presetButtons.forEach(b => b.classList.remove("active"));
+      if (btnTriggerCustom) btnTriggerCustom.classList.remove("active");
+      if (customMinutesDisplay) customMinutesDisplay.value = "";
       btn.classList.add("active");
       
       const minutes = parseInt(btn.dataset.minutes);
@@ -789,39 +796,77 @@ function setupTimerPresets() {
     });
   });
 
-  customMinutesInput.addEventListener("input", () => {
-    if (isTimerRunning) return;
-    presetButtons.forEach(b => b.classList.remove("active"));
-    
-    const val = parseInt(customMinutesInput.value);
-    if (val > 0) {
-      setTimerDuration(val);
-      if (updateDial) updateDial(val);
-    }
-  });
-
   initDialPicker();
 }
 
 function initDialPicker() {
+  const dialModal = document.getElementById("dial-modal");
+  const btnCloseDial = document.getElementById("btn-close-dial");
+  const btnConfirmCustomTime = document.getElementById("btn-confirm-custom-time");
+
   const dialSvg = document.querySelector(".dial-svg");
   const dialKnob = document.getElementById("dial-knob");
   const dialActiveTrack = document.getElementById("dial-active-track");
   const dialMinutesValue = document.getElementById("dial-minutes-value");
+  const customMinutesInput = document.getElementById("custom-minutes");
 
-  if (!dialSvg) return;
+  if (!dialSvg || !dialModal) return;
 
-  const radius = 50;
-  const centerX = 65;
-  const centerY = 65;
+  const radius = 65;
+  const centerX = 80;
+  const centerY = 80;
   const circumference = 2 * Math.PI * radius;
 
   let isDragging = false;
+  let tempMinutes = 25;
 
-  updateDial = (minutes) => {
+  // Set the stroke dasharray for active track
+  if (dialActiveTrack) {
+    dialActiveTrack.style.strokeDasharray = `${circumference} ${circumference}`;
+  }
+
+  // Open modal
+  if (btnTriggerCustom) {
+    btnTriggerCustom.addEventListener("click", () => {
+      if (isTimerRunning) return;
+      dialModal.classList.remove("hidden");
+      setTimeout(() => dialModal.classList.add("show"), 10);
+      
+      // Set dial to current session duration
+      tempMinutes = Math.round(sessionDuration / 60);
+      updateDialVisuals(tempMinutes);
+    });
+  }
+
+  // Close modal functions
+  function closeModal() {
+    dialModal.classList.remove("show");
+    setTimeout(() => dialModal.classList.add("hidden"), 300);
+  }
+
+  if (btnCloseDial) {
+    btnCloseDial.addEventListener("click", closeModal);
+  }
+  
+  dialModal.addEventListener("click", (e) => {
+    if (e.target === dialModal) closeModal();
+  });
+
+  // Confirm selection
+  if (btnConfirmCustomTime) {
+    btnConfirmCustomTime.addEventListener("click", () => {
+      presetButtons.forEach(b => b.classList.remove("active"));
+      if (btnTriggerCustom) btnTriggerCustom.classList.add("active");
+      setTimerDuration(tempMinutes);
+      if (customMinutesDisplay) customMinutesDisplay.value = tempMinutes;
+      closeModal();
+    });
+  }
+
+  function updateDialVisuals(minutes) {
     if (!dialKnob || !dialActiveTrack || !dialMinutesValue) return;
-    
-    // Clamp minutes between 1 and 60 for visual rotation
+
+    // Clamp display minutes between 1 and 60 for visual rotation
     const displayMin = Math.max(1, Math.min(60, minutes));
     const angle = (displayMin / 60) * 2 * Math.PI;
 
@@ -838,40 +883,37 @@ function initDialPicker() {
 
     // Update text and input values
     dialMinutesValue.textContent = minutes;
-    customMinutesInput.value = minutes;
+    if (customMinutesInput) customMinutesInput.value = minutes;
+  }
+
+  updateDial = (minutes) => {
+    tempMinutes = minutes;
+    updateDialVisuals(minutes);
   };
 
   function handleMove(clientX, clientY) {
-    if (isTimerRunning) return;
-    
     const rect = dialSvg.getBoundingClientRect();
     const x = clientX - rect.left - centerX;
     const y = clientY - rect.top - centerY;
 
-    // Calculate angle starting from top (12 o'clock) clockwise
     let angle = Math.atan2(y, x) + Math.PI / 2;
     if (angle < 0) angle += 2 * Math.PI;
 
-    // Convert angle to minutes (1 rotation = 60 minutes)
     let minutes = Math.round((angle / (2 * Math.PI)) * 60);
     if (minutes === 0) minutes = 60;
 
-    // Remove active state from presets when custom dial is used
-    presetButtons.forEach(b => b.classList.remove("active"));
-
-    updateDial(minutes);
-    setTimerDuration(minutes);
+    tempMinutes = minutes;
+    updateDialVisuals(minutes);
   }
 
   // Mouse events
   dialSvg.addEventListener("mousedown", (e) => {
-    if (isTimerRunning) return;
     isDragging = true;
     handleMove(e.clientX, e.clientY);
   });
 
   window.addEventListener("mousemove", (e) => {
-    if (!isDragging || isTimerRunning) return;
+    if (!isDragging) return;
     handleMove(e.clientX, e.clientY);
   });
 
@@ -881,7 +923,6 @@ function initDialPicker() {
 
   // Touch events for mobile
   dialSvg.addEventListener("touchstart", (e) => {
-    if (isTimerRunning) return;
     isDragging = true;
     if (e.touches.length > 0) {
       handleMove(e.touches[0].clientX, e.touches[0].clientY);
@@ -889,7 +930,7 @@ function initDialPicker() {
   });
 
   window.addEventListener("touchmove", (e) => {
-    if (!isDragging || isTimerRunning) return;
+    if (!isDragging) return;
     if (e.touches.length > 0) {
       handleMove(e.touches[0].clientX, e.touches[0].clientY);
     }
@@ -899,8 +940,19 @@ function initDialPicker() {
     isDragging = false;
   });
 
+  // Listen to input changes in modal to sync dial
+  if (customMinutesInput) {
+    customMinutesInput.addEventListener("input", () => {
+      const val = parseInt(customMinutesInput.value);
+      if (val > 0) {
+        tempMinutes = val;
+        updateDialVisuals(val);
+      }
+    });
+  }
+
   // Init position to 25 mins
-  updateDial(25);
+  updateDialVisuals(25);
 }
 
 function setTimerDuration(minutes) {
@@ -946,6 +998,7 @@ function startTimer() {
   btnReset.classList.add("hidden");
   btnRestart.classList.add("hidden");
   document.body.classList.add("lockdown-active");
+  document.body.classList.add("timer-running");
   
   // Disable presets inputs while timer runs
   presetButtons.forEach(btn => btn.disabled = true);
@@ -1003,6 +1056,7 @@ function startTimerInterval() {
 
 function pauseTimer() {
   document.body.classList.remove("lockdown-active");
+  document.body.classList.remove("timer-running");
   isTimerRunning = false;
   btnPause.classList.add("hidden");
   btnStart.classList.remove("hidden");
@@ -1482,7 +1536,12 @@ function renderTasks() {
     }
 
     // Handle click to set active task
-    li.addEventListener("click", () => {
+    li.addEventListener("click", (e) => {
+      // If the click was on the checkbox or delete button or their children, do not toggle active state
+      if (e.target.closest('.task-checkbox-container') || e.target.closest('.task-delete')) {
+        return;
+      }
+      
       if (task.completed) return;
       
       if (activeTaskId === task.id) {

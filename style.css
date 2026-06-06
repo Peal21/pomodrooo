@@ -524,6 +524,39 @@ input[type="time"]:focus {
   align-items: center;
 }
 
+.timer-ambient-glow {
+  position: absolute;
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.12) 0%, transparent 70%);
+  filter: blur(25px);
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s ease, background 0.5s ease;
+}
+
+body.timer-running .timer-ambient-glow {
+  opacity: 1;
+  animation: pulse-glow 3s infinite ease-in-out;
+}
+
+body.distracted-active .timer-ambient-glow {
+  background: radial-gradient(circle, rgba(239, 68, 68, 0.18) 0%, transparent 70%);
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    transform: scale(0.95);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1.0;
+  }
+}
+
 .progress-ring {
   position: absolute;
   top: 0;
@@ -531,17 +564,18 @@ input[type="time"]:focus {
   width: 100%;
   height: 100%;
   transform: rotate(-90deg);
+  z-index: 2;
 }
 
 .progress-ring__circle {
   transition: stroke-dashoffset 0.3s, stroke 0.3s, filter 0.3s;
   transform-origin: 50% 50%;
   stroke-linecap: round;
-  filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.45));
+  filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.45));
 }
 
 .progress-ring__circle.distracted {
-  filter: drop-shadow(0 0 12px rgba(239, 68, 68, 0.65));
+  filter: drop-shadow(0 0 15px rgba(239, 68, 68, 0.65));
 }
 
 .timer-text-container {
@@ -613,37 +647,65 @@ input[type="time"]:focus {
 
 .preset-btn {
   background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--border-panel);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   color: var(--text-secondary);
   padding: 0.5rem 1rem;
-  border-radius: 10px;
+  border-radius: 12px;
   font-family: inherit;
   font-weight: 500;
   font-size: 0.85rem;
   cursor: pointer;
-  transition: var(--transition-smooth);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
 }
 
 .preset-btn:hover {
   background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
   color: var(--text-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 15px -3px rgba(0, 0, 0, 0.2);
 }
 
 .preset-btn.active {
-  background: rgba(16, 185, 129, 0.1);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(59, 130, 246, 0.15) 100%);
   border-color: var(--border-focus);
   color: var(--primary-glow);
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
+  text-shadow: 0 0 5px rgba(16, 185, 129, 0.3);
 }
 
 .custom-time-input {
   display: flex;
   align-items: center;
   background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--border-panel);
-  border-radius: 10px;
-  padding: 0.25rem 0.5rem 0.25rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 0.35rem 0.75rem;
   font-size: 0.85rem;
   color: var(--text-muted);
+  cursor: pointer;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+}
+
+.custom-time-input:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--text-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 15px -3px rgba(0, 0, 0, 0.2);
+}
+
+.custom-time-input.active {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(59, 130, 246, 0.15) 100%);
+  border-color: var(--border-focus);
+  color: var(--primary-glow);
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
 }
 
 .custom-time-input input {
@@ -659,25 +721,85 @@ input[type="time"]:focus {
   outline: none;
 }
 
-/* Clock Dial Picker */
-.clock-dial-picker-container {
+/* Custom Time Dial Modal */
+.dial-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.dial-modal.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.dial-modal.hidden {
+  display: none;
+}
+
+.dial-modal-content {
+  background: rgba(30, 27, 75, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 28px;
+  padding: 2.25rem 2rem;
+  width: 90%;
+  max-width: 320px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-top: 0.5rem;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid var(--border-panel);
-  padding: 1rem;
-  border-radius: 16px;
+  gap: 1.5rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 30px rgba(16, 185, 129, 0.15);
+  transform: scale(0.85);
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.dial-modal.show .dial-modal-content {
+  transform: scale(1);
+}
+
+.dial-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   width: 100%;
-  max-width: 180px;
-  box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.2);
+}
+
+.dial-modal-header h3 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.btn-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.75rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.btn-close:hover {
+  color: var(--warning-glow);
 }
 
 .dial-svg-wrapper {
   position: relative;
-  width: 130px;
-  height: 130px;
+  width: 160px;
+  height: 160px;
 }
 
 .dial-svg {
@@ -690,19 +812,27 @@ input[type="time"]:focus {
 }
 
 .dial-active-track {
-  stroke: var(--primary-glow);
-  filter: drop-shadow(0 0 6px var(--primary-glow));
+  stroke: url(#dial-gradient);
+  filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.45));
 }
 
 .dial-knob {
   fill: #fff;
   stroke: var(--primary-glow);
-  filter: drop-shadow(0 0 4px var(--primary-glow));
-  transition: r 0.1s ease;
+  stroke-width: 2px;
+  filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.7));
+  transition: r 0.15s ease, fill 0.15s ease, stroke 0.15s ease;
+  cursor: grab;
 }
 
-.dial-knob:hover, .dial-knob:active {
-  r: 9px;
+.dial-knob:hover {
+  r: 11px;
+}
+
+.dial-knob:active {
+  cursor: grabbing;
+  fill: var(--primary-glow);
+  r: 12px;
 }
 
 .dial-value-container {
@@ -718,7 +848,7 @@ input[type="time"]:focus {
 }
 
 #dial-minutes-value {
-  font-size: 1.75rem;
+  font-size: 2.25rem;
   font-weight: 800;
   font-family: 'Outfit', sans-serif;
   color: #fff;
@@ -726,12 +856,44 @@ input[type="time"]:focus {
 }
 
 .dial-unit {
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin-top: 0.15rem;
+  margin-top: 0.25rem;
+}
+
+.dial-modal-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+}
+
+.custom-time-input-modal {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-panel);
+  border-radius: 10px;
+  padding: 0.25rem 0.5rem 0.25rem 0.75rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.custom-time-input-modal input {
+  width: 50px;
+  border: none;
+  background: transparent;
+  padding: 0.25rem 0;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-weight: 500;
+  font-size: 0.85rem;
+  text-align: center;
+  outline: none;
 }
 
 /* Timer Controls Buttons */
@@ -1514,6 +1676,35 @@ input[type="time"]:focus {
 
   .stat-label {
     font-size: 0.6rem;
+  }
+
+  /* Responsive custom dial modal for landscape mobile */
+  .dial-modal-content {
+    display: grid !important;
+    grid-template-areas:
+      "header header"
+      "svg actions" !important;
+    grid-template-columns: 160px 1fr !important;
+    align-items: center !important;
+    gap: 1rem !important;
+    max-width: 440px !important;
+    padding: 1.25rem !important;
+  }
+  
+  .dial-modal-header {
+    grid-area: header !important;
+  }
+  
+  .dial-svg-wrapper {
+    grid-area: svg !important;
+    justify-self: center !important;
+  }
+  
+  .dial-modal-actions {
+    grid-area: actions !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    gap: 0.75rem !important;
   }
 }
 
