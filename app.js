@@ -307,8 +307,13 @@ async function startWebcam() {
       
       if (faceLandmarker && objectDetector && handLandmarker) {
         btnCalibrate.disabled = false;
-        systemStatusText.textContent = "Gaze Calibration Required.";
-        statusDot.className = "status-dot orange";
+        if (isCalibrated) {
+          systemStatusText.textContent = "AI Calibrated. Focus system active.";
+          statusDot.className = "status-dot green";
+        } else {
+          systemStatusText.textContent = "Gaze Calibration Required.";
+          statusDot.className = "status-dot orange";
+        }
       } else {
         systemStatusText.textContent = "Loading AI Models...";
         statusDot.className = "status-dot orange";
@@ -1242,6 +1247,39 @@ function setupEventListeners() {
         if (isDistracted) triggerFocusRestore();
       }
     }
+  });
+
+  // Handle device orientation changes or window resize to prevent camera stretching/rotation bugs
+  let lastOrientation = window.innerHeight > window.innerWidth ? "portrait" : "landscape";
+  let resizeTimeout;
+
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      const currentOrientation = window.innerHeight > window.innerWidth ? "portrait" : "landscape";
+      
+      if (currentOrientation !== lastOrientation) {
+        lastOrientation = currentOrientation;
+        
+        if (webcamRunning && isTrackingEnabled) {
+          console.log("Device orientation change detected. Restarting camera and resetting calibration...");
+          
+          // Reset calibration since axis orientation has changed
+          isCalibrated = false;
+          btnCalibrate.textContent = "Calibrate Gaze";
+          btnCalibrate.className = "btn btn-secondary";
+          
+          stopWebcam();
+          startWebcam();
+        }
+      } else {
+        // Just window resize without orientation change (e.g. desktop resize)
+        if (webcamRunning && isTrackingEnabled) {
+          stopWebcam();
+          startWebcam();
+        }
+      }
+    }, 500); // 500ms debounce
   });
 }
 
