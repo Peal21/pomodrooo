@@ -47,7 +47,7 @@ let isTimerRunning = false;
 let isDistracted = false; // Severe distraction (red overlay, timer paused)
 let isGazeDistracted = false; // Gaze distraction (no overlay, timer running, logs loss time)
 let requireBookInFrame = false; // Default to false (allows looking down at desk as focused by default)
-let isTrackingEnabled = true; // Master toggle for AI camera tracking
+let isTrackingEnabled = false; // Master toggle for AI camera tracking
 let updateDial = null; // Sync function for circular clock picker
 
 // Statistics
@@ -138,8 +138,10 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   if (isTrackingEnabled) {
     startWebcam(); // Start camera immediately if enabled
+    updateTrackerVisibility(false);
   } else {
     stopWebcam();
+    updateTrackerVisibility(true);
   }
   
   initAI();      // Load AI models in parallel
@@ -147,6 +149,29 @@ document.addEventListener("DOMContentLoaded", () => {
   setupEventListeners();
   recoverSession(); // Restore session if reload/exit was attempted
 });
+
+// Function to update the camera tracker panel visibility and sync the toggle tracker button
+function updateTrackerVisibility(hide) {
+  const appGrid = document.querySelector(".app-grid");
+  const btnSpan = btnToggleTracker.querySelector("span");
+  const btnIcon = btnToggleTracker.querySelector("svg");
+  
+  if (!appGrid || !btnToggleTracker) return;
+
+  if (hide) {
+    appGrid.classList.add("hide-tracker-active");
+    if (btnSpan) btnSpan.textContent = "Show Tracker";
+    btnToggleTracker.title = "Show camera tracker panel";
+    btnToggleTracker.classList.add("btn-warning");
+    if (btnIcon) btnIcon.innerHTML = `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>`;
+  } else {
+    appGrid.classList.remove("hide-tracker-active");
+    if (btnSpan) btnSpan.textContent = "Hide Tracker";
+    btnToggleTracker.title = "Hide camera tracker panel completely";
+    btnToggleTracker.classList.remove("btn-warning");
+    if (btnIcon) btnIcon.innerHTML = `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>`;
+  }
+}
 
 // Sets default task start time to current HH:MM in Dhaka timezone
 function setDefaultStartTime() {
@@ -1209,21 +1234,9 @@ function setupEventListeners() {
   // Toggle camera tracking panel completely
   btnToggleTracker.addEventListener("click", () => {
     const appGrid = document.querySelector(".app-grid");
-    const isHidden = appGrid.classList.toggle("hide-tracker-active");
-    
-    const btnSpan = btnToggleTracker.querySelector("span");
-    const btnIcon = btnToggleTracker.querySelector("svg");
-    
-    if (isHidden) {
-      btnSpan.textContent = "Show Tracker";
-      btnToggleTracker.title = "Show camera tracker panel";
-      btnToggleTracker.classList.add("btn-warning");
-      btnIcon.innerHTML = `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>`;
-    } else {
-      btnSpan.textContent = "Hide Tracker";
-      btnToggleTracker.title = "Hide camera tracker panel completely";
-      btnToggleTracker.classList.remove("btn-warning");
-      btnIcon.innerHTML = `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>`;
+    if (appGrid) {
+      const isHidden = appGrid.classList.contains("hide-tracker-active");
+      updateTrackerVisibility(!isHidden);
     }
   });
 
@@ -1272,6 +1285,9 @@ function setupEventListeners() {
       // Stop camera and release device to turn off green light
       stopWebcam();
       
+      // Hide tracker panel
+      updateTrackerVisibility(true);
+      
       // Stop alert sound if it was playing
       alertSound.loop = false;
       alertSound.pause();
@@ -1292,6 +1308,9 @@ function setupEventListeners() {
     } else {
       // Re-initialize and start webcam
       startWebcam();
+      
+      // Show tracker panel
+      updateTrackerVisibility(false);
       
       if (isTimerRunning) {
         // Request fullscreen to lock down
