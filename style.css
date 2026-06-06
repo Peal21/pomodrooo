@@ -1917,8 +1917,6 @@ body.lockdown-active #tasks-panel * {
 body.timer-running .app-header,
 body.timer-running #tasks-panel,
 body.timer-running #camera-panel,
-body.timer-running .timer-bd-clock-container,
-body.timer-running .stats-dashboard,
 body.timer-running .timer-controls,
 body.timer-running .timer-settings {
   display: none !important;
@@ -1940,7 +1938,7 @@ body.timer-running .panel-main {
   box-shadow: none !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  transform: scale(1.15) !important;
+  transform: scale(1.02) !important;
   transition: transform 0.5s ease;
   width: 100%;
 }
