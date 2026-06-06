@@ -655,10 +655,10 @@ body.distracted-active .progress-ring__circle-dotted {
 }
 
 .timer-eta {
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--text-muted);
-  margin-top: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-top: 0.65rem;
   letter-spacing: 0.05em;
   transition: opacity 0.3s ease;
 }
