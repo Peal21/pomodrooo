@@ -48,6 +48,8 @@ let isDistracted = false; // Severe distraction (red overlay, timer paused)
 let isGazeDistracted = false; // Gaze distraction (no overlay, timer running, logs loss time)
 let requireBookInFrame = false; // Default to false (allows looking down at desk as focused by default)
 let isTrackingEnabled = false; // Master toggle for AI camera tracking
+let isScreenScanEnabled = true; // Master toggle for tab/window monitoring (Screen Scan)
+let tabAwayTimestamp = null; // Track when user leaves the tab/window
 let updateDial = null; // Sync function for circular clock picker
 
 // Statistics
@@ -124,6 +126,7 @@ const logHands = document.querySelector("#log-hands span");
 const logObjects = document.querySelector("#log-objects span");
 const toggleBookCheck = document.getElementById("toggle-book-check");
 const toggleAiTracking = document.getElementById("toggle-ai-tracking");
+const toggleScreenScan = document.getElementById("toggle-screen-scan");
 
 // ==========================================
 // INITIALIZATION
@@ -135,6 +138,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // Sync tracking enablement status with checkbox (handles browser refresh state recovery)
   if (toggleAiTracking) {
     isTrackingEnabled = toggleAiTracking.checked;
+  }
+  if (toggleScreenScan) {
+    isScreenScanEnabled = toggleScreenScan.checked;
   }
   if (isTrackingEnabled) {
     startWebcam(); // Start camera immediately if enabled
@@ -693,6 +699,11 @@ function triggerDistraction(absent, phone, type = null) {
   distractionCount++;
   statDistractions.textContent = distractionCount;
 
+  // Record timestamp when user navigates away from tab/window
+  if ((type === "blur" || type === "visibility" || type === "fullscreen") && !tabAwayTimestamp) {
+    tabAwayTimestamp = Date.now();
+  }
+
   // Dynamic alert warning message
   let msg = "Please focus back on your study to resume the timer.";
   if (type === "blur") {
@@ -766,6 +777,15 @@ function triggerDistraction(absent, phone, type = null) {
 function triggerFocusRestore() {
   isDistracted = false;
   isGazeDistracted = false;
+  
+  // Calculate and apply loss time spent on other windows/tabs
+  if (tabAwayTimestamp) {
+    const elapsedSecondsAway = Math.round((Date.now() - tabAwayTimestamp) / 1000);
+    totalLossSeconds += elapsedSecondsAway;
+    timeRemaining = Math.max(0, timeRemaining - elapsedSecondsAway);
+    tabAwayTimestamp = null;
+    updateStatsDisplay();
+  }
   
   // Stop looping alert sound
   alertSound.loop = false;
@@ -1342,6 +1362,13 @@ function setupEventListeners() {
     requireBookInFrame = toggleBookCheck.checked;
   });
 
+  // Screen Monitor (Tab/Window Monitoring) Toggle
+  if (toggleScreenScan) {
+    toggleScreenScan.addEventListener("change", () => {
+      isScreenScanEnabled = toggleScreenScan.checked;
+    });
+  }
+
   // Toggle Camera Feed Preview (Privacy Screen Toggle)
   const toggleCameraPreview = document.getElementById("toggle-camera-preview");
   const privacyOverlay = document.getElementById("privacy-overlay");
@@ -1358,13 +1385,13 @@ function setupEventListeners() {
 
   // Window Blur, Visibility & Fullscreen Exit Distraction Enforcements
   window.addEventListener("blur", () => {
-    if (isTrackingEnabled && isTimerRunning && !isDistracted) {
+    if (isScreenScanEnabled && isTimerRunning && !isDistracted) {
       triggerDistraction(0, 0, "blur");
     }
   });
 
   document.addEventListener("visibilitychange", () => {
-    if (isTrackingEnabled && document.hidden && isTimerRunning && !isDistracted) {
+    if (isScreenScanEnabled && document.hidden && isTimerRunning && !isDistracted) {
       triggerDistraction(0, 0, "visibility");
     }
   });
@@ -1372,7 +1399,7 @@ function setupEventListeners() {
   document.addEventListener("fullscreenchange", () => {
     const isFullscreen = document.fullscreenElement !== null;
     if (!isFullscreen) {
-      if (isTrackingEnabled && isTimerRunning && !isDistracted) {
+      if (isScreenScanEnabled && isTimerRunning && !isDistracted) {
         triggerDistraction(0, 0, "fullscreen");
       }
     } else {
