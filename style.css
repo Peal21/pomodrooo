@@ -1924,21 +1924,24 @@ body.lockdown-active #tasks-panel * {
 
 /* Immersive Focus Mode - hide all panels and headers when timer is running */
 body.timer-running .app-header,
-body.timer-running #tasks-panel,
 body.timer-running #camera-panel,
 body.timer-running .timer-controls,
 body.timer-running .timer-settings {
   display: none !important;
 }
 
+body.timer-running #add-task-form {
+  display: none !important;
+}
+
 body.timer-running .app-grid {
-  grid-template-columns: 1fr !important;
-  max-width: 600px;
+  display: grid !important;
+  grid-template-columns: 320px 1fr !important;
+  max-width: 1000px;
   margin: 0 auto;
-  min-height: calc(100vh - 100px);
-  display: flex;
-  justify-content: center;
+  gap: 1.5rem;
   align-items: center;
+  min-height: calc(100vh - 100px);
 }
 
 body.timer-running .panel-main {
@@ -1950,6 +1953,13 @@ body.timer-running .panel-main {
   transform: scale(1.02) !important;
   transition: transform 0.5s ease;
   width: 100%;
+}
+
+@media (max-width: 800px) {
+  body.timer-running .app-grid {
+    grid-template-columns: 1fr !important;
+    max-width: 600px;
+  }
 }
 
 @media (max-width: 600px) {
