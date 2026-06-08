@@ -682,7 +682,19 @@ function evaluateDistractions(facePresent, personDetected, gazeStatus, phoneDete
       cameraFeedContainer.className = "camera-feed-container distracted"; // orange/red visual borders
       if (isTimerRunning) {
         distractionCount++;
-        statDistractions.textContent = distractionCount;
+        if (activeTaskId) {
+          const activeTask = tasks.find(t => t.id === activeTaskId);
+          if (activeTask) {
+            if (!activeTask.distractionCount) activeTask.distractionCount = 0;
+            activeTask.distractionCount++;
+            saveTasks();
+            const statsEl = document.getElementById(`task-stats-${activeTask.id}`);
+            if (statsEl) {
+              statsEl.textContent = `🎯 Focused: ${formatSeconds(activeTask.focusedSeconds || 0)} | 📉 Loss: ${formatSeconds(activeTask.lossSeconds || 0)} | ⚠️ Distractions: ${activeTask.distractionCount || 0}`;
+            }
+          }
+        }
+        updateStatsDisplay();
       }
     }
   } else if (gazeAwayFrames === 0 && !isDistracted) {
@@ -717,7 +729,19 @@ function evaluateDistractions(facePresent, personDetected, gazeStatus, phoneDete
 function triggerDistraction(absent, phone, type = null) {
   isDistracted = true;
   distractionCount++;
-  statDistractions.textContent = distractionCount;
+  if (activeTaskId) {
+    const activeTask = tasks.find(t => t.id === activeTaskId);
+    if (activeTask) {
+      if (!activeTask.distractionCount) activeTask.distractionCount = 0;
+      activeTask.distractionCount++;
+      saveTasks();
+      const statsEl = document.getElementById(`task-stats-${activeTask.id}`);
+      if (statsEl) {
+        statsEl.textContent = `🎯 Focused: ${formatSeconds(activeTask.focusedSeconds || 0)} | 📉 Loss: ${formatSeconds(activeTask.lossSeconds || 0)} | ⚠️ Distractions: ${activeTask.distractionCount || 0}`;
+      }
+    }
+  }
+  updateStatsDisplay();
 
   // Record timestamp when user navigates away from tab/window
   if ((type === "blur" || type === "visibility" || type === "fullscreen") && !tabAwayTimestamp) {
@@ -806,6 +830,23 @@ function triggerFocusRestore() {
     const sessionLoss = Math.min(timeRemaining, elapsedSecondsAway);
     totalLossSeconds += sessionLoss;
     totalSessionSeconds += sessionLoss;
+    
+    // Increment active task stats
+    if (activeTaskId) {
+      const activeTask = tasks.find(t => t.id === activeTaskId);
+      if (activeTask) {
+        if (!activeTask.lossSeconds) activeTask.lossSeconds = 0;
+        if (!activeTask.sessionSeconds) activeTask.sessionSeconds = 0;
+        activeTask.lossSeconds += sessionLoss;
+        activeTask.sessionSeconds += sessionLoss;
+        saveTasks();
+        const statsEl = document.getElementById(`task-stats-${activeTask.id}`);
+        if (statsEl) {
+          statsEl.textContent = `🎯 Focused: ${formatSeconds(activeTask.focusedSeconds || 0)} | 📉 Loss: ${formatSeconds(activeTask.lossSeconds || 0)} | ⚠️ Distractions: ${activeTask.distractionCount || 0}`;
+        }
+      }
+    }
+    
     timeRemaining = Math.max(0, timeRemaining - sessionLoss);
     tabAwayTimestamp = null;
     
@@ -1109,13 +1150,31 @@ function startTimerInterval() {
   timerInterval = setInterval(() => {
     totalSessionSeconds++;
     
+    // Find active task
+    let activeTask = null;
+    if (activeTaskId) {
+      activeTask = tasks.find(t => t.id === activeTaskId);
+    }
+    if (activeTask) {
+      if (!activeTask.sessionSeconds) activeTask.sessionSeconds = 0;
+      activeTask.sessionSeconds++;
+    }
+    
     if (isTimerRunning) {
       // If distracted or gaze distracted, count as loss time (timer does not pause to prevent escaping)
       if (isDistracted || isGazeDistracted) {
         totalLossSeconds++;
+        if (activeTask) {
+          if (!activeTask.lossSeconds) activeTask.lossSeconds = 0;
+          activeTask.lossSeconds++;
+        }
         timeRemaining--;
       } else {
         totalFocusedSeconds++;
+        if (activeTask) {
+          if (!activeTask.focusedSeconds) activeTask.focusedSeconds = 0;
+          activeTask.focusedSeconds++;
+        }
         timeRemaining--;
       }
       
@@ -1127,6 +1186,15 @@ function startTimerInterval() {
       localStorage.setItem("study_session_total_loss", totalLossSeconds);
       localStorage.setItem("study_session_total_session", totalSessionSeconds);
       localStorage.setItem("study_session_distractions", distractionCount);
+
+      // Save tasks and update UI if active task statistics updated
+      if (activeTask) {
+        saveTasks();
+        const statsEl = document.getElementById(`task-stats-${activeTask.id}`);
+        if (statsEl) {
+          statsEl.textContent = `🎯 Focused: ${formatSeconds(activeTask.focusedSeconds || 0)} | 📉 Loss: ${formatSeconds(activeTask.lossSeconds || 0)} | ⚠️ Distractions: ${activeTask.distractionCount || 0}`;
+        }
+      }
 
       // Session finished
       if (timeRemaining <= 0) {
@@ -1205,6 +1273,19 @@ function restartSession() {
     totalSessionSeconds = 0;
     totalLossSeconds = 0;
     distractionCount = 0;
+
+    // Reset active task stats if selected
+    if (activeTaskId) {
+      const activeTask = tasks.find(t => t.id === activeTaskId);
+      if (activeTask) {
+        activeTask.focusedSeconds = 0;
+        activeTask.lossSeconds = 0;
+        activeTask.sessionSeconds = 0;
+        activeTask.distractionCount = 0;
+        saveTasks();
+        renderTasks();
+      }
+    }
     
     // Clear statistics from localStorage
     localStorage.removeItem("study_session_running");
@@ -1221,7 +1302,6 @@ function restartSession() {
     
     // Update stats displays
     updateStatsDisplay();
-    statDistractions.textContent = "0";
     
     // Restore control buttons visibility
     btnStart.classList.remove("hidden");
@@ -1251,37 +1331,56 @@ function completeSession() {
     const activeTaskIdx = tasks.findIndex(t => t.id === activeTaskId);
     if (activeTaskIdx !== -1) {
       tasks[activeTaskIdx].completed = true;
+      activeTaskId = null;
+      activeTaskDisplay.textContent = "No active task selected";
       saveTasks();
       renderTasks();
     }
   }
 }
 
-function updateStatsDisplay() {
-  // Format total focused time (in minutes and seconds)
-  if (totalFocusedSeconds >= 60) {
-    const fMin = Math.floor(totalFocusedSeconds / 60);
-    const fSec = totalFocusedSeconds % 60;
-    statTotalTime.textContent = `${fMin}m ${fSec}s`;
-  } else {
-    statTotalTime.textContent = `${totalFocusedSeconds}s`;
+function formatSeconds(seconds) {
+  if (seconds >= 60) {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}m ${s}s`;
   }
+  return `${seconds}s`;
+}
+
+function updateStatsDisplay() {
+  let focused = totalFocusedSeconds;
+  let loss = totalLossSeconds;
+  let total = totalSessionSeconds;
+  let distractions = distractionCount;
+
+  if (activeTaskId) {
+    const activeTask = tasks.find(t => t.id === activeTaskId);
+    if (activeTask) {
+      focused = activeTask.focusedSeconds || 0;
+      loss = activeTask.lossSeconds || 0;
+      total = activeTask.sessionSeconds || 0;
+      distractions = activeTask.distractionCount || 0;
+    }
+  }
+
+  // Format total focused time
+  statTotalTime.textContent = formatSeconds(focused);
 
   // Format total loss time
   const lossTimeElement = document.getElementById("stat-loss-time");
   if (lossTimeElement) {
-    if (totalLossSeconds >= 60) {
-      const lMin = Math.floor(totalLossSeconds / 60);
-      const lSec = totalLossSeconds % 60;
-      lossTimeElement.textContent = `${lMin}m ${lSec}s`;
-    } else {
-      lossTimeElement.textContent = `${totalLossSeconds}s`;
-    }
+    lossTimeElement.textContent = formatSeconds(loss);
+  }
+
+  // Format distraction count
+  if (statDistractions) {
+    statDistractions.textContent = distractions;
   }
 
   // Calculate focus score
-  if (totalSessionSeconds > 0) {
-    const score = Math.round((totalFocusedSeconds / totalSessionSeconds) * 100);
+  if (total > 0) {
+    const score = Math.round((focused / total) * 100);
     statFocusScore.textContent = `${score}%`;
   } else {
     statFocusScore.textContent = "100%";
@@ -1432,22 +1531,39 @@ function setupEventListeners() {
 
   // Window Blur, Visibility & Fullscreen Exit Distraction Enforcements
   window.addEventListener("blur", () => {
-    if (isScreenScanEnabled && isTimerRunning && !isDistracted) {
-      triggerDistraction(0, 0, "blur");
+    if (isScreenScanEnabled && isTimerRunning) {
+      if (!isDistracted) {
+        triggerDistraction(0, 0, "blur");
+      } else if (!tabAwayTimestamp) {
+        tabAwayTimestamp = Date.now();
+        pauseTimerInterval();
+      }
     }
   });
 
   document.addEventListener("visibilitychange", () => {
-    if (isScreenScanEnabled && document.hidden && isTimerRunning && !isDistracted) {
-      triggerDistraction(0, 0, "visibility");
+    if (isScreenScanEnabled && isTimerRunning) {
+      if (document.hidden) {
+        if (!isDistracted) {
+          triggerDistraction(0, 0, "visibility");
+        } else if (!tabAwayTimestamp) {
+          tabAwayTimestamp = Date.now();
+          pauseTimerInterval();
+        }
+      }
     }
   });
 
   document.addEventListener("fullscreenchange", () => {
     const isFullscreen = document.fullscreenElement !== null;
     if (!isFullscreen) {
-      if (isScreenScanEnabled && isTimerRunning && !isDistracted) {
-        triggerDistraction(0, 0, "fullscreen");
+      if (isScreenScanEnabled && isTimerRunning) {
+        if (!isDistracted) {
+          triggerDistraction(0, 0, "fullscreen");
+        } else if (!tabAwayTimestamp) {
+          tabAwayTimestamp = Date.now();
+          pauseTimerInterval();
+        }
       }
     } else {
       if (isTimerRunning && isDistracted) {
@@ -1554,7 +1670,12 @@ function addTask() {
     startTime,
     endTime,
     duration,
-    completed: false
+    date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    completed: false,
+    focusedSeconds: 0,
+    lossSeconds: 0,
+    sessionSeconds: 0,
+    distractionCount: 0
   };
 
   tasks.push(task);
@@ -1584,6 +1705,17 @@ function renderTasks() {
     // Auto format 24h to 12h clock
     const formattedStart = format12h(task.startTime);
     const formattedEnd = format12h(task.endTime);
+    
+    // Resolve date safely
+    let taskDate = task.date;
+    if (!taskDate) {
+      const parsedId = parseInt(task.id);
+      if (!isNaN(parsedId)) {
+        taskDate = new Date(parsedId).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      } else {
+        taskDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      }
+    }
 
     li.innerHTML = `
       <div class="task-checkbox-container">
@@ -1595,9 +1727,13 @@ function renderTasks() {
         </div>
       </div>
       <div class="task-details">
-        <span class="task-time-range">${formattedStart} - ${formattedEnd}</span>
         <span class="task-title" title="${task.name}">${task.name}</span>
-        <span class="task-duration-sub">🕒 Duration: ${task.duration} mins</span>
+        <span class="task-meta-sub" style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 0.15rem;">
+          📅 ${taskDate} | 🕒 ${formattedStart} - ${formattedEnd} (${task.duration}m)
+        </span>
+        <span class="task-stats-sub" id="task-stats-${task.id}" style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 0.15rem;">
+          🎯 Focused: ${formatSeconds(task.focusedSeconds || 0)} | 📉 Loss: ${formatSeconds(task.lossSeconds || 0)} | ⚠️ Distractions: ${task.distractionCount || 0}
+        </span>
       </div>
       <button class="task-delete">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
@@ -1618,6 +1754,7 @@ function renderTasks() {
       
       saveTasks();
       renderTasks();
+      updateStatsDisplay();
     });
 
     // Prevent checkbox container clicks from bubbling to li click handler
@@ -1645,7 +1782,9 @@ function renderTasks() {
         activeTaskId = task.id;
         activeTaskDisplay.textContent = `Studying: ${task.name}`;
       }
+      saveTasks();
       renderTasks();
+      updateStatsDisplay();
     });
 
     // Handle delete task
@@ -1667,18 +1806,31 @@ function deleteTask(id) {
   }
   saveTasks();
   renderTasks();
+  updateStatsDisplay();
 }
 
 function saveTasks() {
   localStorage.setItem("focus_study_tasks", JSON.stringify(tasks));
+  localStorage.setItem("active_task_id", activeTaskId || "");
 }
 
 function loadTasks() {
   const data = localStorage.getItem("focus_study_tasks");
   if (data) {
     tasks = JSON.parse(data);
-    renderTasks();
   }
+  const savedActiveTaskId = localStorage.getItem("active_task_id");
+  if (savedActiveTaskId && tasks.some(t => t.id === savedActiveTaskId)) {
+    activeTaskId = savedActiveTaskId;
+    const activeTask = tasks.find(t => t.id === activeTaskId);
+    if (activeTask) {
+      activeTaskDisplay.textContent = `Studying: ${activeTask.name}`;
+    }
+  } else {
+    activeTaskId = null;
+    activeTaskDisplay.textContent = "No active task selected";
+  }
+  renderTasks();
 }
 
 // Convert 24hr string "23:15" to "11:15 PM"
@@ -1988,10 +2140,35 @@ function recoverSession() {
       totalLossSeconds = parseInt(localStorage.getItem("study_session_total_loss")) || 0;
       totalSessionSeconds = parseInt(localStorage.getItem("study_session_total_session")) || 0;
       distractionCount = parseInt(localStorage.getItem("study_session_distractions")) || 0;
-      statDistractions.textContent = distractionCount;
       
       sessionDuration = duration;
       timeRemaining = timeLeft;
+      
+      // Calculate time lost during page reload / tab closure
+      const expectedTimeLeft = duration - totalSessionSeconds;
+      const reloadLoss = Math.max(0, expectedTimeLeft - timeLeft);
+      
+      if (reloadLoss > 0) {
+        totalLossSeconds += reloadLoss;
+        totalSessionSeconds += reloadLoss;
+        
+        // Also apply it to the active task if selected
+        if (activeTaskId) {
+          const activeTask = tasks.find(t => t.id === activeTaskId);
+          if (activeTask) {
+            if (!activeTask.lossSeconds) activeTask.lossSeconds = 0;
+            if (!activeTask.sessionSeconds) activeTask.sessionSeconds = 0;
+            activeTask.lossSeconds += reloadLoss;
+            activeTask.sessionSeconds += reloadLoss;
+            saveTasks();
+            const statsEl = document.getElementById(`task-stats-${activeTask.id}`);
+            if (statsEl) {
+              statsEl.textContent = `🎯 Focused: ${formatSeconds(activeTask.focusedSeconds || 0)} | 📉 Loss: ${formatSeconds(activeTask.lossSeconds || 0)} | ⚠️ Distractions: ${activeTask.distractionCount || 0}`;
+            }
+          }
+        }
+      }
+      
       updateTimerDisplay();
       updateStatsDisplay();
       
