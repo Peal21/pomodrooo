@@ -1325,18 +1325,6 @@ function completeSession() {
   resetTimer();
   
   localStorage.removeItem("study_session_running");
-  
-  // Auto-complete active task if selected
-  if (activeTaskId) {
-    const activeTaskIdx = tasks.findIndex(t => t.id === activeTaskId);
-    if (activeTaskIdx !== -1) {
-      tasks[activeTaskIdx].completed = true;
-      activeTaskId = null;
-      activeTaskDisplay.textContent = "No active task selected";
-      saveTasks();
-      renderTasks();
-    }
-  }
 }
 
 function formatSeconds(seconds) {
@@ -1679,8 +1667,11 @@ function addTask() {
   };
 
   tasks.push(task);
+  activeTaskId = task.id;
+  activeTaskDisplay.textContent = `Studying: ${task.name}`;
   saveTasks();
   renderTasks();
+  updateStatsDisplay();
 
   // Reset task input fields
   taskNameInput.value = "";
